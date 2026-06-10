@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>aud_it — PDF Redaction</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="header">
+    <h1>aud_it</h1>
+    <p class="subtitle">Local-first PDF redaction</p>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <section class="panel">
+        <h2>Upload</h2>
+        <input type="file" id="file-input" accept="application/pdf">
+        <button id="upload-btn" class="btn primary">Upload PDF</button>
+        <div id="doc-info" class="doc-info hidden"></div>
+        <div id="scanned-badge" class="badge hidden">Scanned — Run OCR</div>
+        <button id="ocr-btn" class="btn secondary hidden">Run OCR</button>
+      </section>
+
+      <section class="panel">
+        <h2>Search</h2>
+        <input type="text" id="search-input" placeholder="Search text...">
+        <div class="btn-row">
+          <button id="search-btn" class="btn">Find</button>
+          <button id="bulk-redact-btn" class="btn danger">Redact all matches</button>
+        </div>
+        <p id="search-results" class="hint"></p>
+      </section>
+
+      <section class="panel">
+        <h2>Tools</h2>
+        <div class="tool-modes">
+          <button class="btn mode-btn active" data-mode="select">Select</button>
+          <button class="btn mode-btn" data-mode="draw">Draw</button>
+          <button class="btn mode-btn" data-mode="delete">Delete</button>
+        </div>
+        <p class="hint">Delete key removes selected box</p>
+      </section>
+
+      <section class="panel">
+        <h2>PII Detection</h2>
+        <button id="detect-pii-btn" class="btn secondary">Detect PII</button>
+        <button id="apply-pii-btn" class="btn danger hidden">Apply selected PII</button>
+        <div id="pii-results" class="pii-results"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Export</h2>
+        <button id="export-btn" class="btn primary">Export redacted PDF</button>
+        <div id="export-status" class="export-status"></div>
+      </section>
+    </aside>
+
+    <section class="viewer">
+      <div class="viewer-toolbar">
+        <button id="prev-page" class="btn">← Prev</button>
+        <span id="page-indicator">Page 1 / 1</span>
+        <button id="next-page" class="btn">Next →</button>
+      </div>
+      <div class="canvas-container" id="canvas-container">
+        <canvas id="page-canvas"></canvas>
+        <canvas id="overlay-canvas"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/canvas.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
