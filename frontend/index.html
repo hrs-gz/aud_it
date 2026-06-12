@@ -8,70 +8,217 @@
 </head>
 <body>
   <header class="header">
-    <h1>aud_it</h1>
-    <p class="subtitle">Local-first PDF redaction</p>
+    <div class="header-left">
+      <h1>aud_it</h1>
+      <p class="subtitle">Local-first PDF redaction</p>
+    </div>
+    <div id="global-status" class="global-status"></div>
   </header>
 
   <main class="layout">
-    <aside class="sidebar">
+    <!-- LEFT: documents / pages / rules -->
+    <aside class="sidebar left">
       <section class="panel">
-        <h2>Upload</h2>
-        <input type="file" id="file-input" accept="application/pdf">
-        <button id="upload-btn" class="btn primary">Upload PDF</button>
-        <div id="doc-info" class="doc-info hidden"></div>
-        <div id="scanned-badge" class="badge hidden">Scanned — Run OCR</div>
-        <button id="ocr-btn" class="btn secondary hidden">Run OCR</button>
-      </section>
-
-      <section class="panel">
-        <h2>Search</h2>
-        <input type="text" id="search-input" placeholder="Search text...">
-        <div class="btn-row">
-          <button id="search-btn" class="btn">Find</button>
-          <button id="bulk-redact-btn" class="btn danger">Redact all matches</button>
+        <div class="panel-head">
+          <h2>Documents</h2>
+          <button id="upload-btn" class="btn small primary">+ Import</button>
+          <input type="file" id="file-input" accept="application/pdf" multiple hidden>
         </div>
-        <p id="search-results" class="hint"></p>
-      </section>
-
-      <section class="panel">
-        <h2>Tools</h2>
-        <div class="tool-modes">
-          <button class="btn mode-btn active" data-mode="select">Select</button>
-          <button class="btn mode-btn" data-mode="draw">Draw</button>
-          <button class="btn mode-btn" data-mode="delete">Delete</button>
+        <div class="doc-select-row">
+          <label class="check-label"><input type="checkbox" id="select-all-docs"> All</label>
+          <span id="doc-count" class="hint"></span>
         </div>
-        <p class="hint">Delete key removes selected box</p>
+        <div id="doc-list" class="doc-list"><p class="hint">No documents imported.</p></div>
+        <div class="batch-bar">
+          <button id="batch-detect-btn" class="btn small secondary">Detect</button>
+          <button id="batch-apply-btn" class="btn small danger">Apply redactions</button>
+          <button id="batch-verify-btn" class="btn small">Verify</button>
+          <button id="batch-export-btn" class="btn small primary">Export…</button>
+        </div>
+      </section>
+
+      <section class="panel collapsible" id="detection-panel">
+        <div class="panel-head">
+          <h2>Detection settings</h2>
+          <button class="btn small toggle-panel" data-target="detection-body">▾</button>
+        </div>
+        <div id="detection-body" class="panel-body collapsed">
+          <div id="recognizer-catalog" class="recognizer-catalog">
+            <p class="hint">Loading recognizers...</p>
+          </div>
+          <label class="field-label" for="score-threshold">Score threshold</label>
+          <input type="number" id="score-threshold" min="0" max="1" step="0.05" value="0.5">
+        </div>
       </section>
 
       <section class="panel">
-        <h2>PII Detection</h2>
-        <button id="detect-pii-btn" class="btn secondary">Detect PII</button>
-        <button id="apply-pii-btn" class="btn danger hidden">Apply selected PII</button>
-        <div id="pii-results" class="pii-results"></div>
+        <div class="panel-head">
+          <h2>Pages</h2>
+          <span id="pages-doc-name" class="hint"></span>
+        </div>
+        <div id="page-strip" class="page-strip"><p class="hint">Select a document.</p></div>
       </section>
 
       <section class="panel">
-        <h2>Export</h2>
-        <button id="export-btn" class="btn primary">Export redacted PDF</button>
-        <div id="export-status" class="export-status"></div>
+        <div class="panel-head">
+          <h2>Rules</h2>
+          <button id="new-rule-btn" class="btn small secondary">+ New rule</button>
+        </div>
+        <div id="rules-list" class="rules-list"><p class="hint">No rules yet.</p></div>
       </section>
     </aside>
 
+    <!-- CENTER: viewer -->
     <section class="viewer">
       <div class="viewer-toolbar">
-        <button id="prev-page" class="btn">← Prev</button>
-        <span id="page-indicator">Page 1 / 1</span>
-        <button id="next-page" class="btn">Next →</button>
+        <div class="toolbar-group">
+          <button class="btn small mode-btn active" data-mode="select" title="Select findings">Select</button>
+          <button class="btn small mode-btn" data-mode="draw" title="Draw redaction box">Draw</button>
+          <button class="btn small mode-btn" data-mode="text" title="Select text">Text</button>
+        </div>
+        <div class="toolbar-group">
+          <button id="zoom-out" class="btn small">−</button>
+          <span id="zoom-level" class="zoom-level">100%</span>
+          <button id="zoom-in" class="btn small">+</button>
+        </div>
+        <div class="toolbar-group">
+          <button id="prev-page" class="btn small">←</button>
+          <span id="page-indicator">– / –</span>
+          <button id="next-page" class="btn small">→</button>
+        </div>
+        <div class="toolbar-group">
+          <div class="view-toggle">
+            <button id="view-original" class="btn small active">Original</button>
+            <button id="view-redacted" class="btn small" disabled>Redacted</button>
+          </div>
+        </div>
       </div>
-      <div class="canvas-container" id="canvas-container">
-        <canvas id="page-canvas"></canvas>
-        <canvas id="overlay-canvas"></canvas>
+      <div class="viewer-scroll" id="viewer-scroll">
+        <div class="canvas-container" id="canvas-container">
+          <canvas id="page-canvas"></canvas>
+          <canvas id="overlay-canvas"></canvas>
+        </div>
+        <p id="viewer-empty" class="viewer-empty">Import PDFs to get started.</p>
       </div>
     </section>
+
+    <!-- RIGHT: PII review pane -->
+    <aside class="sidebar right">
+      <div class="review-header">
+        <div id="summary-chips" class="summary-chips"></div>
+        <div class="review-actions">
+          <button id="redact-selected-btn" class="btn small danger">Redact selected</button>
+          <button id="ignore-selected-btn" class="btn small">Ignore selected</button>
+          <button id="redact-highconf-btn" class="btn small secondary">Redact all high-confidence</button>
+        </div>
+        <div class="view-mode-toggle">
+          <button id="page-view-btn" class="btn small active">Page View</button>
+          <button id="pii-view-btn" class="btn small">PII View</button>
+        </div>
+        <div class="filters">
+          <select id="filter-type"><option value="">All types</option></select>
+          <select id="filter-status">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="needs_review">Needs review</option>
+            <option value="approved">Approved</option>
+            <option value="applied">Applied</option>
+            <option value="ignored">Ignored</option>
+          </select>
+          <select id="filter-source">
+            <option value="">All sources</option>
+            <option value="auto">Auto</option>
+            <option value="rule">Rule</option>
+            <option value="search">Search</option>
+            <option value="manual">Manual</option>
+          </select>
+          <label class="conf-filter">≥ conf
+            <input type="number" id="filter-confidence" min="0" max="1" step="0.05" placeholder="0">
+          </label>
+        </div>
+      </div>
+      <div id="review-body" class="review-body">
+        <p class="hint">Run detection to see findings.</p>
+      </div>
+    </aside>
   </main>
+
+  <!-- Popup action menu (draw box / text select) -->
+  <div id="popup-menu" class="popup-menu hidden"></div>
+
+  <!-- Rule editor modal -->
+  <div id="rule-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="rule-modal-title">New rule</h2>
+        <button id="rule-modal-close" class="btn small">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="field-label">Name</label>
+        <input type="text" id="rule-name" placeholder="A-number">
+        <label class="field-label">PII type</label>
+        <input type="text" id="rule-entity" placeholder="A_NUMBER">
+        <label class="field-label">Example values (one per line)</label>
+        <textarea id="rule-examples" rows="3" placeholder="A123456789"></textarea>
+        <div class="btn-row">
+          <button id="rule-suggest-btn" class="btn small secondary">Suggest pattern</button>
+          <label class="check-label"><input type="checkbox" id="rule-advanced"> Advanced (edit regex)</label>
+        </div>
+        <label class="field-label">Pattern</label>
+        <input type="text" id="rule-pattern" placeholder="\bA[- ]?\d{8,9}\b" readonly>
+        <div class="rule-grid">
+          <div>
+            <label class="field-label">Confidence</label>
+            <input type="number" id="rule-confidence" min="0" max="1" step="0.05" value="0.7">
+          </div>
+          <div>
+            <label class="field-label">Default action</label>
+            <select id="rule-action">
+              <option value="review">Mark for review</option>
+              <option value="approve">Auto-approve for redaction</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="rule-test-btn" class="btn small">Test on selected docs</button>
+        </div>
+        <div id="rule-test-results" class="rule-test-results"></div>
+      </div>
+      <div class="modal-foot">
+        <button id="rule-delete-btn" class="btn small danger hidden">Delete rule</button>
+        <span class="spacer"></span>
+        <button id="rule-cancel-btn" class="btn small">Cancel</button>
+        <button id="rule-save-btn" class="btn small primary">Save rule</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export dialog -->
+  <div id="export-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Export</h2>
+        <button id="export-modal-close" class="btn small">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="export-summary"></div>
+        <div id="export-results"></div>
+      </div>
+      <div class="modal-foot">
+        <button id="export-review-btn" class="btn small hidden">Review remaining</button>
+        <span class="spacer"></span>
+        <button id="export-cancel-btn" class="btn small">Close</button>
+        <button id="export-anyway-btn" class="btn small danger hidden">Export anyway</button>
+        <button id="export-confirm-btn" class="btn small primary">Export</button>
+      </div>
+    </div>
+  </div>
 
   <script src="/js/api.js"></script>
   <script src="/js/canvas.js"></script>
+  <script src="/js/sidebar.js"></script>
+  <script src="/js/review.js"></script>
+  <script src="/js/rules.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

@@ -6,14 +6,17 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.config import settings
 from backend.database import init_db
-from backend.routers import documents, redactions
+from backend.routers import batch, documents, findings, presidio, rules
 
 init_db()
 
 app = FastAPI(title="aud_it", description="Local-first PDF redaction")
 
 app.include_router(documents.router)
-app.include_router(redactions.router)
+app.include_router(findings.router)
+app.include_router(rules.router)
+app.include_router(batch.router)
+app.include_router(presidio.router)
 
 frontend_dir = settings.frontend_dir
 

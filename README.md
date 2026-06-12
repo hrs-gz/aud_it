@@ -1,25 +1,40 @@
 # aud_it
 
-Local-first PDF redaction web app. Upload a PDF, draw or search for redaction boxes, and export a destructively redacted copy. No cloud services or paid APIs.
+Local-first PDF redaction app. Import PDFs in batch, detect PII, review every finding, apply true redactions, verify nothing leaked, and export with audit reports. No login, no cloud, no network calls.
+
+## Workflow
+
+`Import PDFs → Detect PII → Review → Approve → Apply → Verify → Export`
+
+Findings move through a staged lifecycle — nothing is redacted until you apply:
+
+`pending / needs_review → approved → applied → verified → exported` (or `ignored`)
 
 ## Features
 
-- Upload PDFs and render pages as images
-- Word-level text extraction with PyMuPDF
-- Search text and redact all matches
-- Manually draw, move, resize, and delete redaction boxes
-- Export redacted PDFs with metadata stripped
-- Post-export verification that redacted terms are no longer extractable
-- OCR fallback for scanned documents (OCRmyPDF / Tesseract)
-- Optional PII detection with Microsoft Presidio (local models)
+- Batch import; per-document status (OCR / detecting / applying / verifying / error)
+- PII detection with Microsoft Presidio + spaCy (all local): SSN, phone, email, names, locations, organizations, A-numbers, DOB, MRN, account and case IDs
+- Custom rules: low-code pattern builder (examples → suggested regex), advanced regex editor, test-on-documents, auto-approve or mark-for-review
+- Three-panel review UI: document/page sidebar, zoomable viewer with status-colored overlays and original ↔ redacted toggle, review pane with Page/PII views, masked values with explicit reveal, filters, and bulk actions
+- Manual redaction boxes (draw on page, apply to all pages) and text-selection → find similar / create rule
+- OCR for scanned PDFs: OCRmyPDF preferred, PyMuPDF + Tesseract fallback that produces a real text layer; per-page failure reporting
+- True redaction via PyMuPDF `apply_redactions` — text is removed, never just covered
+- Verification pass: search test, residual PII sweep, metadata stripped, annotations flattened, no text under boxes, no unresolved approvals; failing docs block export (with explicit "export anyway")
+- Export: per-document redacted PDFs and batch ZIP with `audit_report.json`, `redaction_summary.csv`, `verification_report.json` (counts and masked values only — no sensitive snippets)
+
+## Privacy guarantees
+
+- Originals are never modified; OCR and redactions go to a working copy (`storage/work/`)
+- Finding values are masked in API responses; reveal is an explicit per-finding request
+- No document text in logs; no network calls (Presidio's tldextract is pinned to its offline snapshot)
 
 ## Requirements
 
 - Python 3.11+
 - [Tesseract](https://github.com/tesseract-ocr/tesseract) (for OCR): `brew install tesseract`
-- [OCRmyPDF](https://ocrmypdf.readthedocs.io/) (optional, for scanned PDFs): `brew install ocrmypdf`
+- [OCRmyPDF](https://ocrmypdf.readthedocs.io/) (optional, preferred for scanned PDFs): `brew install ocrmypdf`
 
-For Presidio PII detection (optional):
+For Presidio PII detection:
 
 ```bash
 python -m spacy download en_core_web_lg
@@ -38,33 +53,60 @@ pip install -r requirements.txt
 
 ```bash
 source .venv/bin/activate
-uvicorn backend.main:app --reload --port 8000
+uvicorn backend.main:app --port 8000
 ```
 
 Open http://localhost:8000
+
+## Tests
+
+```bash
+pytest
+```
+
+Uses the synthetic corpus in `tests/redaction_test_pdfs/` (see `README_manifest.json`), including the intentionally unsafe black-box-overlay PDF.
 
 ## Storage
 
 All files are stored locally:
 
 - `storage/originals/` — uploaded PDFs (never modified)
-- `storage/pages/` — rendered page PNGs
-- `storage/exports/` — redacted output PDFs
-- `storage/work/` — temporary OCR working copies
+- `storage/work/` — working copies (OCR text layer) and applied (redacted) copies
+- `storage/pages/` — rendered page PNGs (original and redacted)
+- `storage/exports/` — exported PDFs and batch ZIPs
 - `data/aud_it.db` — SQLite metadata
 
 ## API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/documents` | Upload PDF |
-| GET | `/api/documents/{id}` | Document metadata |
-| GET | `/api/documents/{id}/pages/{n}/image` | Page PNG |
+| POST | `/api/documents` | Upload PDFs (multi-file) |
+| GET | `/api/documents` | List documents with statuses and finding counts |
+| GET/DELETE | `/api/documents/{id}` | Document metadata / remove |
+| GET | `/api/documents/{id}/pages/{n}/image?version=` | Page PNG (`original` or `redacted`) |
 | GET | `/api/documents/{id}/pages/{n}/words` | Word bounding boxes |
-| GET | `/api/documents/{id}/search?q=term` | Search text |
-| GET/POST/PUT/DELETE | `/api/documents/{id}/redactions` | Redaction CRUD |
-| POST | `/api/documents/{id}/redactions/bulk` | Bulk add from search |
-| POST | `/api/documents/{id}/export` | Export redacted PDF |
-| GET | `/api/documents/{id}/verify` | Verify export |
-| POST | `/api/documents/{id}/ocr` | Run OCR on scanned PDF |
-| POST | `/api/documents/{id}/detect-pii` | Detect PII with Presidio |
+| POST | `/api/documents/{id}/ocr` | Run OCR into the working copy |
+| GET | `/api/findings` | List findings (masked) with filters |
+| GET | `/api/findings/{id}/value` | Reveal a finding's value |
+| POST | `/api/documents/{id}/findings` | Manual redaction box (page / all pages) |
+| PATCH/DELETE | `/api/findings/{id}` | Update status or bbox / delete manual box |
+| POST | `/api/findings/bulk` | Bulk approve/ignore/reset by filter |
+| POST | `/api/findings/search` | Turn text-search matches into pending findings |
+| POST | `/api/batch/detect` | Detect PII across documents (background) |
+| POST | `/api/batch/apply` | Apply approved redactions + auto-verify (background) |
+| POST | `/api/batch/verify` | Re-run verification (background) |
+| POST | `/api/batch/export` | Export ZIP + reports |
+| GET | `/api/documents/{id}/verification` | Verification report |
+| GET/POST | `/api/rules` | List / create rules |
+| PATCH/DELETE | `/api/rules/{id}` | Update / delete rule |
+| POST | `/api/rules/suggest` | Suggest regex from examples |
+| POST | `/api/rules/test` | Test a pattern against documents |
+| GET | `/api/presidio/recognizers` | Selectable entity types |
+
+## Presidio Exploration
+
+Learn Presidio by defining custom recognizers and testing them on synthetic PDFs:
+
+- Guide: [docs/PRESIDIO_EXPLORATION.md](docs/PRESIDIO_EXPLORATION.md)
+- Recognizer files: `backend/presidio/recognizers/`
+- Test corpus: `tests/redaction_test_pdfs/` (see `README_manifest.json`)

@@ -62,17 +62,55 @@ def ingest_pdf(db: Session, filename: str, content: bytes) -> Document:
     return document
 
 
-def get_pdf_path(document: Document) -> Path:
+def current_pdf_path(document: Document) -> Path:
+    """The PDF all text operations should read: the working copy if one exists
+    (e.g. after OCR), otherwise the untouched original."""
+    if document.working_path and Path(document.working_path).exists():
+        return Path(document.working_path)
     return Path(document.storage_path)
 
 
+def working_pdf_target(document: Document) -> Path:
+    work_dir = settings.storage_dir / "work" / document.id
+    work_dir.mkdir(parents=True, exist_ok=True)
+    return work_dir / "working.pdf"
+
+
+def applied_pdf_target(document: Document) -> Path:
+    work_dir = settings.storage_dir / "work" / document.id
+    work_dir.mkdir(parents=True, exist_ok=True)
+    return work_dir / "applied.pdf"
+
+
+def set_working_pdf(document: Document, new_pdf_path: Path) -> Path:
+    """Install a new working copy (e.g. OCR output). The original is never touched."""
+    dest = working_pdf_target(document)
+    if Path(new_pdf_path) != dest:
+        shutil.copy2(new_pdf_path, dest)
+    document.working_path = str(dest)
+    return dest
+
+
+def delete_document_files(document: Document) -> None:
+    for path in (
+        settings.storage_dir / "originals" / document.id,
+        settings.storage_dir / "pages" / document.id,
+        settings.storage_dir / "work" / document.id,
+        settings.storage_dir / "exports" / document.id,
+    ):
+        shutil.rmtree(path, ignore_errors=True)
+
+
 def rerender_pages(db: Session, document: Document, pdf_path: Path) -> None:
+    """Re-render the standard (working) page images and refresh word counts."""
     pdf = fitz.open(str(pdf_path))
     matrix = fitz.Matrix(document.render_scale, document.render_scale)
     pages_dir = settings.storage_dir / "pages" / document.id
     pages_dir.mkdir(parents=True, exist_ok=True)
 
     for page_record in document.pages:
+        if page_record.page_num >= len(pdf):
+            continue
         page = pdf[page_record.page_num]
         image_path = pages_dir / f"{page_record.page_num}.png"
         pix = page.get_pixmap(matrix=matrix)
@@ -81,7 +119,6 @@ def rerender_pages(db: Session, document: Document, pdf_path: Path) -> None:
         words = extract_words(page)
         page_record.word_count = len(words)
 
-    document.page_count = len(pdf)
     document.is_scanned = is_scanned_document(
         [p.word_count for p in document.pages],
         settings.ocr_word_threshold,
@@ -90,8 +127,19 @@ def rerender_pages(db: Session, document: Document, pdf_path: Path) -> None:
     db.commit()
 
 
-def replace_source_pdf(document: Document, new_pdf_path: Path) -> Path:
-    """Copy a new PDF over the stored original path (original dir, new content from OCR)."""
-    dest = Path(document.storage_path)
-    shutil.copy2(new_pdf_path, dest)
-    return dest
+def render_redacted_pages(document: Document, pdf_path: Path) -> None:
+    """Render the applied (redacted) copy as a parallel image set for the
+    original/redacted viewer toggle."""
+    pdf = fitz.open(str(pdf_path))
+    matrix = fitz.Matrix(document.render_scale, document.render_scale)
+    pages_dir = settings.storage_dir / "pages" / document.id
+    pages_dir.mkdir(parents=True, exist_ok=True)
+
+    for page_num in range(len(pdf)):
+        pix = pdf[page_num].get_pixmap(matrix=matrix)
+        pix.save(str(pages_dir / f"redacted_{page_num}.png"))
+    pdf.close()
+
+
+def redacted_page_image_path(document: Document, page_num: int) -> Path:
+    return settings.storage_dir / "pages" / document.id / f"redacted_{page_num}.png"

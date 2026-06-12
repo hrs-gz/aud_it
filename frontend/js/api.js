@@ -1,98 +1,162 @@
+async function _json(res) {
+  if (!res.ok) {
+    let detail = await res.text();
+    try {
+      const parsed = JSON.parse(detail);
+      if (parsed.detail) detail = typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed.detail);
+    } catch (_) { /* raw text */ }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+function _post(url, body) {
+  return fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then(_json);
+}
+
 const API = {
-  async upload(file) {
+  // --- documents ---
+  async upload(files) {
     const form = new FormData();
-    form.append("file", file);
-    const res = await fetch("/api/documents", { method: "POST", body: form });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    for (const file of files) form.append("files", file);
+    return _json(await fetch("/api/documents", { method: "POST", body: form }));
+  },
+
+  async listDocuments() {
+    return _json(await fetch("/api/documents"));
   },
 
   async getDocument(id) {
-    const res = await fetch(`/api/documents/${id}`);
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    return _json(await fetch(`/api/documents/${id}`));
   },
 
-  pageImageUrl(id, pageNum) {
-    return `/api/documents/${id}/pages/${pageNum}/image`;
+  async deleteDocument(id) {
+    return _json(await fetch(`/api/documents/${id}`, { method: "DELETE" }));
+  },
+
+  pageImageUrl(id, pageNum, version = "original") {
+    return `/api/documents/${id}/pages/${pageNum}/image?version=${version}`;
+  },
+
+  async getWords(id, pageNum) {
+    return _json(await fetch(`/api/documents/${id}/pages/${pageNum}/words`));
   },
 
   async search(id, query) {
-    const res = await fetch(`/api/documents/${id}/search?q=${encodeURIComponent(query)}`);
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  },
-
-  async getRedactions(id, page) {
-    const url = page !== undefined
-      ? `/api/documents/${id}/redactions?page=${page}`
-      : `/api/documents/${id}/redactions`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  },
-
-  async createRedaction(id, box) {
-    const res = await fetch(`/api/documents/${id}/redactions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(box),
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  },
-
-  async updateRedaction(redactionId, box) {
-    const res = await fetch(`/api/redactions/${redactionId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(box),
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  },
-
-  async deleteRedaction(redactionId) {
-    const res = await fetch(`/api/redactions/${redactionId}`, { method: "DELETE" });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  },
-
-  async bulkRedact(id, query) {
-    const res = await fetch(`/api/documents/${id}/redactions/bulk`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  },
-
-  async export(id) {
-    const res = await fetch(`/api/documents/${id}/export`, { method: "POST" });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    return _json(await fetch(`/api/documents/${id}/search?q=${encodeURIComponent(query)}`));
   },
 
   async runOcr(id) {
-    const res = await fetch(`/api/documents/${id}/ocr`, { method: "POST" });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    return _json(await fetch(`/api/documents/${id}/ocr`, { method: "POST" }));
   },
 
-  async detectPii(id) {
-    const res = await fetch(`/api/documents/${id}/detect-pii`, { method: "POST" });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+  // --- findings ---
+  async getFindings({ documentIds, page, entityType, status, source, minConfidence } = {}) {
+    const params = new URLSearchParams();
+    for (const id of documentIds || []) params.append("document_ids", id);
+    if (page !== undefined && page !== null) params.set("page", page);
+    if (entityType) params.set("entity_type", entityType);
+    for (const s of status || []) params.append("status", s);
+    if (source) params.set("source", source);
+    if (minConfidence != null) params.set("min_confidence", minConfidence);
+    return _json(await fetch(`/api/findings?${params}`));
   },
 
-  async applyPii(id, suggestions) {
-    const res = await fetch(`/api/documents/${id}/detect-pii/apply`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ suggestions }),
+  async revealFinding(id) {
+    return _json(await fetch(`/api/findings/${id}/value`));
+  },
+
+  createManualFinding(docId, payload) {
+    return _post(`/api/documents/${docId}/findings`, payload);
+  },
+
+  async updateFinding(id, patch) {
+    return _json(
+      await fetch(`/api/findings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      })
+    );
+  },
+
+  async deleteFinding(id) {
+    return _json(await fetch(`/api/findings/${id}`, { method: "DELETE" }));
+  },
+
+  bulkFindings(action, filter) {
+    return _post("/api/findings/bulk", { action, filter });
+  },
+
+  searchFindings(query, documentIds) {
+    return _post("/api/findings/search", { query, document_ids: documentIds });
+  },
+
+  // --- batch pipeline ---
+  batchDetect(documentIds, entities, scoreThreshold) {
+    return _post("/api/batch/detect", {
+      document_ids: documentIds,
+      entities,
+      score_threshold: scoreThreshold,
+      auto_ocr: true,
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+  },
+
+  batchApply(documentIds) {
+    return _post("/api/batch/apply", { document_ids: documentIds });
+  },
+
+  batchVerify(documentIds) {
+    return _post("/api/batch/verify", { document_ids: documentIds });
+  },
+
+  batchExport(documentIds, allowUnverified) {
+    return _post("/api/batch/export", {
+      document_ids: documentIds,
+      allow_unverified: allowUnverified,
+    });
+  },
+
+  async getVerification(docId) {
+    return _json(await fetch(`/api/documents/${docId}/verification`));
+  },
+
+  // --- recognizers & rules ---
+  async getRecognizers() {
+    return _json(await fetch("/api/presidio/recognizers"));
+  },
+
+  async getRules() {
+    return _json(await fetch("/api/rules"));
+  },
+
+  createRule(payload) {
+    return _post("/api/rules", payload);
+  },
+
+  async updateRule(id, patch) {
+    return _json(
+      await fetch(`/api/rules/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      })
+    );
+  },
+
+  async deleteRule(id) {
+    return _json(await fetch(`/api/rules/${id}`, { method: "DELETE" }));
+  },
+
+  suggestPattern(examples) {
+    return _post("/api/rules/suggest", { examples });
+  },
+
+  testPattern(pattern, documentIds) {
+    return _post("/api/rules/test", { pattern, document_ids: documentIds });
   },
 };

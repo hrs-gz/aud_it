@@ -1,0 +1,35 @@
+{
+  "purpose": "Synthetic PDFs for testing local PDF redaction tools. All personal data is fake.",
+  "fake_values": {
+    "name": "Jordan Avery",
+    "email": "jordan.avery@example.test",
+    "phone": "(555) 013-4421",
+    "ssn": "123-45-6789",
+    "dob": "04/18/1997",
+    "address": "742 Maple Ridge Lane, Austin, TX 78701",
+    "account": "ACCT-9842-7710-5531",
+    "case": "CASE-2026-01984",
+    "mrn": "MRN-00048192",
+    "passport": "X12345678"
+  },
+  "files": [
+    "01_text_pii_letter.pdf",
+    "02_table_mixed_identifiers.pdf",
+    "03_multipage_repeated_pii.pdf",
+    "04_rotated_and_small_text.pdf",
+    "05_scanned_image_pdf_needs_ocr.pdf",
+    "06_intentionally_unsafe_black_box_overlay.pdf",
+    "07_mixed_text_and_image_stamp.pdf",
+    "08_form_like_layout.pdf"
+  ],
+  "expected_behaviors": {
+    "01_text_pii_letter.pdf": "Text extraction should find all fake PII; true redaction should remove it from extracted text.",
+    "02_table_mixed_identifiers.pdf": "Tests redaction boxes around table cells and structured data.",
+    "03_multipage_repeated_pii.pdf": "Tests redact-all across multiple pages.",
+    "04_rotated_and_small_text.pdf": "Tests small text, rotated text, and coordinate mapping.",
+    "05_scanned_image_pdf_needs_ocr.pdf": "Text extraction should find little or no text before OCR; OCR required.",
+    "06_intentionally_unsafe_black_box_overlay.pdf": "Looks redacted but is not; verification should still extract hidden text.",
+    "07_mixed_text_and_image_stamp.pdf": "Tests both extractable text and image-embedded text that needs OCR.",
+    "08_form_like_layout.pdf": "Tests form-style layout and line/box coordinate alignment."
+  }
+}
