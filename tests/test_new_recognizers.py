@@ -40,11 +40,46 @@ def test_plain_date_without_context_below_threshold(analyzer):
     assert not results
 
 
+def test_us_address_manifest_street(analyzer):
+    text = "Current address: 742 Maple Ridge Lane, Austin, TX 78701"
+    results = analyzer.analyze(text=text, language="en", entities=["US_ADDRESS"], score_threshold=0.5)
+    detected = {text[r.start : r.end] for r in results}
+    assert "742 Maple Ridge Lane, Austin, TX 78701" in detected
+
+
+def test_us_address_legal_dataset(analyzer):
+    text = "4417 Canal Street, Apt 12B, Houston, TX 77011"
+    results = analyzer.analyze(text=text, language="en", entities=["US_ADDRESS"], score_threshold=0.5)
+    detected = {text[r.start : r.end] for r in results}
+    assert text in detected
+
+
+def test_us_address_po_box(analyzer):
+    text = "P.O. Box 123, Chicago, IL 60601"
+    results = analyzer.analyze(text=text, language="en", entities=["US_ADDRESS"], score_threshold=0.5)
+    detected = {text[r.start : r.end] for r in results}
+    assert text in detected
+
+
+def test_us_address_city_only_negative(analyzer):
+    text = "The meeting happened in Houston, TX on 03/15/2024."
+    results = analyzer.analyze(text=text, language="en", entities=["US_ADDRESS"], score_threshold=0.5)
+    assert not results
+
+
 def test_catalog_defaults_include_ner_entities():
     from backend.presidio.analyzer import default_entities, list_recognizers
 
     catalog = {entry.entity_type for entry in list_recognizers()}
-    assert {"A_NUMBER", "DOB"} <= catalog
+    assert {"A_NUMBER", "DOB", "US_ADDRESS"} <= catalog
 
     defaults = set(default_entities())
-    assert {"PERSON", "LOCATION", "ORGANIZATION", "US_SSN", "A_NUMBER", "DOB"} <= defaults
+    assert {
+        "PERSON",
+        "LOCATION",
+        "ORGANIZATION",
+        "US_SSN",
+        "A_NUMBER",
+        "DOB",
+        "US_ADDRESS",
+    } <= defaults

@@ -1,17 +1,5 @@
-from pydantic import BaseModel
-
 from backend.presidio.recognizers import get_custom_recognizers
-
-
-class RecognizerCatalogEntry(BaseModel):
-    entity_type: str
-    label: str
-    description: str
-    group: str
-    custom: bool
-    default_enabled: bool
-
-
+from backend.schemas import RecognizerCatalogEntry
 CUSTOM_CATALOG: list[RecognizerCatalogEntry] = [
     RecognizerCatalogEntry(
         entity_type="MEDICAL_RECORD_NUMBER",
@@ -49,6 +37,14 @@ CUSTOM_CATALOG: list[RecognizerCatalogEntry] = [
         entity_type="DOB",
         label="Date of Birth",
         description="Dates near birth-related context (DOB, born, birthdate)",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
+    RecognizerCatalogEntry(
+        entity_type="US_ADDRESS",
+        label="US Address",
+        description="US street addresses and PO boxes parsed with usaddress",
         group="custom",
         custom=True,
         default_enabled=True,
