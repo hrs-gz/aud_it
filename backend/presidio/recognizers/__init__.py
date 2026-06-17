@@ -5,6 +5,7 @@ from backend.presidio.recognizers.anumber import A_NUMBER_RECOGNIZER
 from backend.presidio.recognizers.case_id import CASE_ID_RECOGNIZER
 from backend.presidio.recognizers.dob import DOB_RECOGNIZER
 from backend.presidio.recognizers.mrn import MRN_RECOGNIZER
+from backend.presidio.recognizers.us_address import US_ADDRESS_RECOGNIZER
 
 
 def get_custom_recognizers() -> list[EntityRecognizer]:
@@ -14,4 +15,5 @@ def get_custom_recognizers() -> list[EntityRecognizer]:
         CASE_ID_RECOGNIZER,
         A_NUMBER_RECOGNIZER,
         DOB_RECOGNIZER,
+        US_ADDRESS_RECOGNIZER,
     ]

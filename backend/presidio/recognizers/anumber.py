@@ -4,7 +4,7 @@ from presidio_analyzer import Pattern, PatternRecognizer
 # separators (A123456789, A-123-456-789, A 123 456 78).
 A_NUMBER_PATTERN = Pattern(
     name="a_number_pattern",
-    regex=r"\bA[- ]?\d{3}[- ]?\d{3}[- ]?\d{2,3}\b",
+    regex=r"\bA[\s#:\-]*(?:\d[\s\-]*){7,9}\b",
     score=0.6,
 )
 

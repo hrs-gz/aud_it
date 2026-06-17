@@ -101,6 +101,9 @@ These ship with the project and target fake values in the test corpus:
 | `MEDICAL_RECORD_NUMBER` | `MRN-\d{8}` | MRN-00048192 (manifest value; test via synthetic text or add to a PDF) |
 | `ACCOUNT_NUMBER` | `ACCT-\d{4}-\d{4}-\d{4}` | ACCT-9842-7710-5531 |
 | `CASE_ID` | `CASE-\d{4}-\d{5}` | CASE-2026-01984 |
+| `US_ADDRESS` | `EntityRecognizer` + `usaddress.tag()` | 742 Maple Ridge Lane, Austin, TX 78701 |
+
+`US_ADDRESS` is an NLP-based recognizer (not regex): see `backend/presidio/recognizers/us_address.py`.
 
 Built-in Presidio entities (email, phone, SSN, etc.) are also selectable in the **Built-in** group.
 
