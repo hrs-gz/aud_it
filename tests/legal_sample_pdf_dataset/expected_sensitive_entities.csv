@@ -1,0 +1,118 @@
+file,page,entity_type,exact_text,note
+01_client_intake_form.pdf,1,PERSON,Marisol Elena Rivera,Full legal name
+01_client_intake_form.pdf,1,PERSON,Marisol Rivera,Preferred name
+01_client_intake_form.pdf,1,DATE_OF_BIRTH,04/18/1997,Date of birth
+01_client_intake_form.pdf,1,A_NUMBER,A-203-555-914,Alien Registration Number
+01_client_intake_form.pdf,1,USCIS_RECEIPT,MSC2490123456,USCIS receipt number
+01_client_intake_form.pdf,1,I94_NUMBER,78901234567,I-94 admission number
+01_client_intake_form.pdf,1,PASSPORT_NUMBER,P12345678,Passport number
+01_client_intake_form.pdf,1,PHONE_NUMBER,(832) 555-0198,Phone
+01_client_intake_form.pdf,1,EMAIL_ADDRESS,marisol.rivera.test@example.org,Email
+01_client_intake_form.pdf,1,ADDRESS,"4417 Canal Street, Apt 12B, Houston, TX 77011",Current address
+01_client_intake_form.pdf,1,PERSON,Luis Rivera,Emergency contact
+01_client_intake_form.pdf,1,PHONE_NUMBER,(713) 555-0441,Emergency contact phone
+01_client_intake_form.pdf,1,MINOR_NAME,Sofia Rivera,Minor child
+01_client_intake_form.pdf,1,DATE_OF_BIRTH,09/03/2018,Minor child DOB
+01_client_intake_form.pdf,1,ADDRESS,"2107 Oak Lane, Pasadena, TX 77502",Prior address
+01_client_intake_form.pdf,1,CLIENT_ID,C-2026-00417,Clinic internal client ID
+01_client_intake_form.pdf,1,GRANT_ID,LSC-HOU-26-B7,Funding grant code
+02_immigration_court_hearing_notice.pdf,1,PERSON,Marisol Elena Rivera,Respondent
+02_immigration_court_hearing_notice.pdf,1,A_NUMBER,A 203-555-914,Space variant A-number
+02_immigration_court_hearing_notice.pdf,1,EOIR_CASE,EOIR-26-004889,EOIR case
+02_immigration_court_hearing_notice.pdf,1,DATE,06/03/2026,Notice date
+02_immigration_court_hearing_notice.pdf,1,DATE,08/21/2026,Hearing date
+02_immigration_court_hearing_notice.pdf,1,TIME,9:00 AM,Hearing time
+02_immigration_court_hearing_notice.pdf,1,ADDRESS,"1919 Smith Street, 14th Floor, Houston, TX 77002",Court address
+02_immigration_court_hearing_notice.pdf,1,EMAIL_ADDRESS,priya.nair.test@lawclinic.example,Counsel email
+02_immigration_court_hearing_notice.pdf,1,ADDRESS,"4417 Canal Street, Apt 12B, Houston, TX 77011",Mailing address
+02_immigration_court_hearing_notice.pdf,1,PHONE_NUMBER,(832) 555-0198,Phone on file
+02_immigration_court_hearing_notice.pdf,1,BARCODE_ID,HOU-MCH-0626-7781,Notice barcode
+03_client_declaration_affidavit.pdf,1,PERSON,Marisol Elena Rivera,Declarant
+03_client_declaration_affidavit.pdf,1,DATE_OF_BIRTH,04/18/1997,DOB
+03_client_declaration_affidavit.pdf,1,ADDRESS,"4417 Canal Street, Apt 12B, Houston, TX 77011",Current address
+03_client_declaration_affidavit.pdf,1,MINOR_NAME,Sofia Rivera,Minor child
+03_client_declaration_affidavit.pdf,1,ADDRESS,"2107 Oak Lane, Pasadena, TX 77502",Former address
+03_client_declaration_affidavit.pdf,1,PERSON,Andres Castillo,Former partner
+03_client_declaration_affidavit.pdf,1,DATE,03/14/2024,Police report date
+03_client_declaration_affidavit.pdf,1,POLICE_REPORT,HPD-24-778901,Incident report
+03_client_declaration_affidavit.pdf,1,EMPLOYER,Bayou Market LLC,Employer
+03_client_declaration_affidavit.pdf,1,EMPLOYEE_ID,BM-8842,Employee number
+03_client_declaration_affidavit.pdf,1,PERSON,Karen Cho,Supervisor
+03_client_declaration_affidavit.pdf,1,PHONE_NUMBER,(281) 555-0177,Supervisor phone
+03_client_declaration_affidavit.pdf,1,DATE,01/09/2024,Chronology date
+03_client_declaration_affidavit.pdf,1,ADDRESS,"71 Hope Center Drive, Houston, TX 77003",Shelter address
+03_client_declaration_affidavit.pdf,1,MEDICAL_PROVIDER,Gulf Coast Family Clinic,Medical provider
+03_client_declaration_affidavit.pdf,1,USCIS_RECEIPT,MSC2490123456,Receipt
+03_client_declaration_affidavit.pdf,2,SCHOOL_NAME,Travis Elementary School,School
+03_client_declaration_affidavit.pdf,2,STUDENT_ID,STU-392018,Student ID
+03_client_declaration_affidavit.pdf,2,BANK_LAST4,4821,Bank last four
+03_client_declaration_affidavit.pdf,2,ROUTING_NUMBER,113000023,Routing number
+03_client_declaration_affidavit.pdf,2,BANK_ACCOUNT,8796442102,Bank account
+03_client_declaration_affidavit.pdf,2,CLIENT_ID,C-2026-00417,Clinic ID
+03_client_declaration_affidavit.pdf,2,DATE,06/04/2026,Signature date
+03_client_declaration_affidavit.pdf,2,EMAIL_ADDRESS,marisol.rivera.test@example.org,Signature email
+04_grant_eligibility_packet.pdf,1,CLIENT_ID,C-2026-00417,Clinic ID
+04_grant_eligibility_packet.pdf,1,GRANT_ID,LSC-HOU-26-B7,Grant program
+04_grant_eligibility_packet.pdf,1,PERSON,Marisol Elena Rivera,Applicant
+04_grant_eligibility_packet.pdf,1,MONEY,"$1,486.22",Income
+04_grant_eligibility_packet.pdf,1,PUBLIC_BENEFITS_ID,SNAP-7782-TX,SNAP case
+04_grant_eligibility_packet.pdf,1,PUBLIC_BENEFITS_ID,MCD-26-44102,Medicaid case
+04_grant_eligibility_packet.pdf,1,ROUTING_NUMBER,113000023,Routing
+04_grant_eligibility_packet.pdf,1,BANK_ACCOUNT,8796442102,Bank account
+04_grant_eligibility_packet.pdf,1,EMAIL_ADDRESS,devon.brooks.test@lawclinic.example,Staff email
+04_grant_eligibility_packet.pdf,1,SENSITIVE_CATEGORY,domestic violence survivor,Sensitive narrative tag
+04_grant_eligibility_packet.pdf,1,MEDICAL_CONDITION,anxiety treatment,Health-related note
+04_grant_eligibility_packet.pdf,1,MEDICAL_PROVIDER,Gulf Coast Family Clinic,Medical provider
+04_grant_eligibility_packet.pdf,1,DATE,05/31/2026,Pay stub date
+04_grant_eligibility_packet.pdf,1,PERSON,Andres Castillo,Conflict search
+04_grant_eligibility_packet.pdf,1,DATE,06/12/2026,Deadline
+05_evidence_index_and_paystub.pdf,1,PASSPORT_NUMBER,P12345678,Passport
+05_evidence_index_and_paystub.pdf,1,DATE_OF_BIRTH,04/18/1997,DOB
+05_evidence_index_and_paystub.pdf,1,ADDRESS,"4417 Canal Street, Apt 12B, Houston, TX 77011",Address
+05_evidence_index_and_paystub.pdf,1,EMPLOYER,Bayou Market LLC,Employer
+05_evidence_index_and_paystub.pdf,1,EMPLOYEE_ID,BM-8842,Payroll ID
+05_evidence_index_and_paystub.pdf,1,SSN,123-45-6612,SSN
+05_evidence_index_and_paystub.pdf,1,SCHOOL_NAME,Travis Elementary School,School
+05_evidence_index_and_paystub.pdf,1,MINOR_NAME,Sofia Rivera,Minor
+05_evidence_index_and_paystub.pdf,1,STUDENT_ID,STU-392018,Student ID
+05_evidence_index_and_paystub.pdf,1,ADDRESS,"8890 Navigation Blvd, Houston, TX 77012",Employer address
+05_evidence_index_and_paystub.pdf,1,DATE,05/16/2026,Pay period start
+05_evidence_index_and_paystub.pdf,1,DATE,05/31/2026,Pay period end
+05_evidence_index_and_paystub.pdf,1,DATE,06/05/2026,Check date
+05_evidence_index_and_paystub.pdf,1,MONEY,$743.11,Wages
+05_evidence_index_and_paystub.pdf,1,ROUTING_NUMBER,113000023,Routing
+05_evidence_index_and_paystub.pdf,1,BANK_ACCOUNT,8796442102,Account
+06_supporting_provider_letter.pdf,1,MEDICAL_PROVIDER,Gulf Coast Family Clinic,Provider
+06_supporting_provider_letter.pdf,1,ADDRESS,"1010 Wellness Park Drive, Houston, TX 77004",Clinic address
+06_supporting_provider_letter.pdf,1,PHONE_NUMBER,(713) 555-0124,Clinic phone
+06_supporting_provider_letter.pdf,1,PHONE_NUMBER,(713) 555-0188,Clinic fax
+06_supporting_provider_letter.pdf,1,PERSON,Marisol Elena Rivera,Client
+06_supporting_provider_letter.pdf,1,DATE_OF_BIRTH,04/18/1997,DOB
+06_supporting_provider_letter.pdf,1,DATE,07/02/2024,Treatment start
+06_supporting_provider_letter.pdf,1,MEDICAL_CONDITION,anxiety symptoms,Condition phrase
+06_supporting_provider_letter.pdf,1,SENSITIVE_CATEGORY,domestic violence,Sensitive category
+06_supporting_provider_letter.pdf,1,MINOR_NAME,Sofia Rivera,Minor child
+06_supporting_provider_letter.pdf,1,EMAIL_ADDRESS,records.test@gulfclinic.example,Records email
+06_supporting_provider_letter.pdf,1,AUTHORIZATION_CODE,AUTH-26-5580,Authorization
+06_supporting_provider_letter.pdf,1,A_NUMBER,A-203-555-914,A-number
+06_supporting_provider_letter.pdf,1,PROFESSIONAL_LICENSE,TX-552190,License
+06_supporting_provider_letter.pdf,1,DATE,06/06/2026,Signature date
+07_scanned_walk_in_notes_image_only.pdf,1,PERSON,Marisol Elena Rivera,Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,DATE_OF_BIRTH,04/18/1997,Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,A_NUMBER,A-203-555-914,Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,PHONE_NUMBER,(832) 555-0198,Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,ADDRESS,"4417 Canal Street Apt 12B, Houston TX 77011",Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,EOIR_CASE,EOIR-26-004889,Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,MINOR_NAME,Sofia Rivera,Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,STUDENT_ID,STU-392018,Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,USCIS_RECEIPT,MSC2490123456,Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,PERSON,Andres Castillo,Scanned note
+07_scanned_walk_in_notes_image_only.pdf,1,CLIENT_ID,C-2026-00417,Scanned note
+08_attorney_review_worksheet.pdf,1,PERSON,Marisol Elena Rivera,Client
+08_attorney_review_worksheet.pdf,1,A_NUMBER,A-203-555-914,A-number
+08_attorney_review_worksheet.pdf,1,CLIENT_ID,C-2026-00417,Clinic ID
+08_attorney_review_worksheet.pdf,1,PERSON,Andres Castillo,Conflict
+08_attorney_review_worksheet.pdf,1,DATE,08/21/2026,Deadline
+08_attorney_review_worksheet.pdf,1,TIME,9:00 AM,Deadline time
+08_attorney_review_worksheet.pdf,1,PHONE_NUMBER,(832) 555-0198,Phone
+08_attorney_review_worksheet.pdf,1,EMAIL_ADDRESS,marisol.rivera.test@example.org,Email

@@ -39,6 +39,9 @@ class DocumentResponse(BaseModel):
     verification_passed: bool | None
     exported_at: datetime | None
     created_at: datetime
+    project_id: str | None = None
+    is_materialized: bool = False
+    archived: bool = False
     ocr_errors: list[OCRPageError] = Field(default_factory=list)
     finding_counts: FindingCounts = Field(default_factory=FindingCounts)
     pages: list[PageInfo] = Field(default_factory=list)
@@ -322,3 +325,69 @@ class ExportBatchResponse(BaseModel):
     zip_url: str | None = None
     items: list[ExportItemResult]
     warnings: list[str] = Field(default_factory=list)
+
+
+# --- Projects ---
+
+
+class ProjectSummary(BaseModel):
+    id: str
+    name: str
+    step: str
+    document_count: int
+    page_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectListResponse(BaseModel):
+    projects: list[ProjectSummary]
+
+
+class ProjectResponse(BaseModel):
+    id: str
+    name: str
+    step: str
+    document_count: int
+    page_count: int
+    can_undo: bool
+    can_redo: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectCreate(BaseModel):
+    name: str = "Untitled project"
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = None
+    step: str | None = None
+
+
+class ProjectPageSlot(BaseModel):
+    id: int
+    slot_index: int
+    source_document_id: str
+    source_page_num: int
+    source_filename: str
+    thumbnail_url: str
+
+
+class ProjectPagesResponse(BaseModel):
+    pages: list[ProjectPageSlot]
+    can_undo: bool
+    can_redo: bool
+
+
+class ProjectPagesReorder(BaseModel):
+    slot_ids: list[int]
+
+
+class ProjectPagesDelete(BaseModel):
+    slot_ids: list[int]
+
+
+class ProjectAdvanceResponse(BaseModel):
+    project: ProjectResponse
+    document: DocumentResponse

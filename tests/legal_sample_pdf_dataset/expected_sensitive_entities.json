@@ -1,0 +1,821 @@
+[
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Marisol Elena Rivera",
+    "note": "Full legal name"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Marisol Rivera",
+    "note": "Preferred name"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "DATE_OF_BIRTH",
+    "exact_text": "04/18/1997",
+    "note": "Date of birth"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "A_NUMBER",
+    "exact_text": "A-203-555-914",
+    "note": "Alien Registration Number"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "USCIS_RECEIPT",
+    "exact_text": "MSC2490123456",
+    "note": "USCIS receipt number"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "I94_NUMBER",
+    "exact_text": "78901234567",
+    "note": "I-94 admission number"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "PASSPORT_NUMBER",
+    "exact_text": "P12345678",
+    "note": "Passport number"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "PHONE_NUMBER",
+    "exact_text": "(832) 555-0198",
+    "note": "Phone"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "EMAIL_ADDRESS",
+    "exact_text": "marisol.rivera.test@example.org",
+    "note": "Email"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "4417 Canal Street, Apt 12B, Houston, TX 77011",
+    "note": "Current address"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Luis Rivera",
+    "note": "Emergency contact"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "PHONE_NUMBER",
+    "exact_text": "(713) 555-0441",
+    "note": "Emergency contact phone"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "MINOR_NAME",
+    "exact_text": "Sofia Rivera",
+    "note": "Minor child"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "DATE_OF_BIRTH",
+    "exact_text": "09/03/2018",
+    "note": "Minor child DOB"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "2107 Oak Lane, Pasadena, TX 77502",
+    "note": "Prior address"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "CLIENT_ID",
+    "exact_text": "C-2026-00417",
+    "note": "Clinic internal client ID"
+  },
+  {
+    "file": "01_client_intake_form.pdf",
+    "page": 1,
+    "entity_type": "GRANT_ID",
+    "exact_text": "LSC-HOU-26-B7",
+    "note": "Funding grant code"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Marisol Elena Rivera",
+    "note": "Respondent"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "A_NUMBER",
+    "exact_text": "A 203-555-914",
+    "note": "Space variant A-number"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "EOIR_CASE",
+    "exact_text": "EOIR-26-004889",
+    "note": "EOIR case"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "06/03/2026",
+    "note": "Notice date"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "08/21/2026",
+    "note": "Hearing date"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "TIME",
+    "exact_text": "9:00 AM",
+    "note": "Hearing time"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "1919 Smith Street, 14th Floor, Houston, TX 77002",
+    "note": "Court address"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "EMAIL_ADDRESS",
+    "exact_text": "priya.nair.test@lawclinic.example",
+    "note": "Counsel email"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "4417 Canal Street, Apt 12B, Houston, TX 77011",
+    "note": "Mailing address"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "PHONE_NUMBER",
+    "exact_text": "(832) 555-0198",
+    "note": "Phone on file"
+  },
+  {
+    "file": "02_immigration_court_hearing_notice.pdf",
+    "page": 1,
+    "entity_type": "BARCODE_ID",
+    "exact_text": "HOU-MCH-0626-7781",
+    "note": "Notice barcode"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Marisol Elena Rivera",
+    "note": "Declarant"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "DATE_OF_BIRTH",
+    "exact_text": "04/18/1997",
+    "note": "DOB"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "4417 Canal Street, Apt 12B, Houston, TX 77011",
+    "note": "Current address"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "MINOR_NAME",
+    "exact_text": "Sofia Rivera",
+    "note": "Minor child"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "2107 Oak Lane, Pasadena, TX 77502",
+    "note": "Former address"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Andres Castillo",
+    "note": "Former partner"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "03/14/2024",
+    "note": "Police report date"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "POLICE_REPORT",
+    "exact_text": "HPD-24-778901",
+    "note": "Incident report"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "EMPLOYER",
+    "exact_text": "Bayou Market LLC",
+    "note": "Employer"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "EMPLOYEE_ID",
+    "exact_text": "BM-8842",
+    "note": "Employee number"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Karen Cho",
+    "note": "Supervisor"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "PHONE_NUMBER",
+    "exact_text": "(281) 555-0177",
+    "note": "Supervisor phone"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "01/09/2024",
+    "note": "Chronology date"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "71 Hope Center Drive, Houston, TX 77003",
+    "note": "Shelter address"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "MEDICAL_PROVIDER",
+    "exact_text": "Gulf Coast Family Clinic",
+    "note": "Medical provider"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 1,
+    "entity_type": "USCIS_RECEIPT",
+    "exact_text": "MSC2490123456",
+    "note": "Receipt"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 2,
+    "entity_type": "SCHOOL_NAME",
+    "exact_text": "Travis Elementary School",
+    "note": "School"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 2,
+    "entity_type": "STUDENT_ID",
+    "exact_text": "STU-392018",
+    "note": "Student ID"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 2,
+    "entity_type": "BANK_LAST4",
+    "exact_text": "4821",
+    "note": "Bank last four"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 2,
+    "entity_type": "ROUTING_NUMBER",
+    "exact_text": "113000023",
+    "note": "Routing number"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 2,
+    "entity_type": "BANK_ACCOUNT",
+    "exact_text": "8796442102",
+    "note": "Bank account"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 2,
+    "entity_type": "CLIENT_ID",
+    "exact_text": "C-2026-00417",
+    "note": "Clinic ID"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 2,
+    "entity_type": "DATE",
+    "exact_text": "06/04/2026",
+    "note": "Signature date"
+  },
+  {
+    "file": "03_client_declaration_affidavit.pdf",
+    "page": 2,
+    "entity_type": "EMAIL_ADDRESS",
+    "exact_text": "marisol.rivera.test@example.org",
+    "note": "Signature email"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "CLIENT_ID",
+    "exact_text": "C-2026-00417",
+    "note": "Clinic ID"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "GRANT_ID",
+    "exact_text": "LSC-HOU-26-B7",
+    "note": "Grant program"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Marisol Elena Rivera",
+    "note": "Applicant"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "MONEY",
+    "exact_text": "$1,486.22",
+    "note": "Income"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "PUBLIC_BENEFITS_ID",
+    "exact_text": "SNAP-7782-TX",
+    "note": "SNAP case"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "PUBLIC_BENEFITS_ID",
+    "exact_text": "MCD-26-44102",
+    "note": "Medicaid case"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "ROUTING_NUMBER",
+    "exact_text": "113000023",
+    "note": "Routing"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "BANK_ACCOUNT",
+    "exact_text": "8796442102",
+    "note": "Bank account"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "EMAIL_ADDRESS",
+    "exact_text": "devon.brooks.test@lawclinic.example",
+    "note": "Staff email"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "SENSITIVE_CATEGORY",
+    "exact_text": "domestic violence survivor",
+    "note": "Sensitive narrative tag"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "MEDICAL_CONDITION",
+    "exact_text": "anxiety treatment",
+    "note": "Health-related note"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "MEDICAL_PROVIDER",
+    "exact_text": "Gulf Coast Family Clinic",
+    "note": "Medical provider"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "05/31/2026",
+    "note": "Pay stub date"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Andres Castillo",
+    "note": "Conflict search"
+  },
+  {
+    "file": "04_grant_eligibility_packet.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "06/12/2026",
+    "note": "Deadline"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "PASSPORT_NUMBER",
+    "exact_text": "P12345678",
+    "note": "Passport"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "DATE_OF_BIRTH",
+    "exact_text": "04/18/1997",
+    "note": "DOB"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "4417 Canal Street, Apt 12B, Houston, TX 77011",
+    "note": "Address"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "EMPLOYER",
+    "exact_text": "Bayou Market LLC",
+    "note": "Employer"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "EMPLOYEE_ID",
+    "exact_text": "BM-8842",
+    "note": "Payroll ID"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "SSN",
+    "exact_text": "123-45-6612",
+    "note": "SSN"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "SCHOOL_NAME",
+    "exact_text": "Travis Elementary School",
+    "note": "School"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "MINOR_NAME",
+    "exact_text": "Sofia Rivera",
+    "note": "Minor"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "STUDENT_ID",
+    "exact_text": "STU-392018",
+    "note": "Student ID"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "8890 Navigation Blvd, Houston, TX 77012",
+    "note": "Employer address"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "05/16/2026",
+    "note": "Pay period start"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "05/31/2026",
+    "note": "Pay period end"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "06/05/2026",
+    "note": "Check date"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "MONEY",
+    "exact_text": "$743.11",
+    "note": "Wages"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "ROUTING_NUMBER",
+    "exact_text": "113000023",
+    "note": "Routing"
+  },
+  {
+    "file": "05_evidence_index_and_paystub.pdf",
+    "page": 1,
+    "entity_type": "BANK_ACCOUNT",
+    "exact_text": "8796442102",
+    "note": "Account"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "MEDICAL_PROVIDER",
+    "exact_text": "Gulf Coast Family Clinic",
+    "note": "Provider"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "1010 Wellness Park Drive, Houston, TX 77004",
+    "note": "Clinic address"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "PHONE_NUMBER",
+    "exact_text": "(713) 555-0124",
+    "note": "Clinic phone"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "PHONE_NUMBER",
+    "exact_text": "(713) 555-0188",
+    "note": "Clinic fax"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Marisol Elena Rivera",
+    "note": "Client"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "DATE_OF_BIRTH",
+    "exact_text": "04/18/1997",
+    "note": "DOB"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "07/02/2024",
+    "note": "Treatment start"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "MEDICAL_CONDITION",
+    "exact_text": "anxiety symptoms",
+    "note": "Condition phrase"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "SENSITIVE_CATEGORY",
+    "exact_text": "domestic violence",
+    "note": "Sensitive category"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "MINOR_NAME",
+    "exact_text": "Sofia Rivera",
+    "note": "Minor child"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "EMAIL_ADDRESS",
+    "exact_text": "records.test@gulfclinic.example",
+    "note": "Records email"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "AUTHORIZATION_CODE",
+    "exact_text": "AUTH-26-5580",
+    "note": "Authorization"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "A_NUMBER",
+    "exact_text": "A-203-555-914",
+    "note": "A-number"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "PROFESSIONAL_LICENSE",
+    "exact_text": "TX-552190",
+    "note": "License"
+  },
+  {
+    "file": "06_supporting_provider_letter.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "06/06/2026",
+    "note": "Signature date"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Marisol Elena Rivera",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "DATE_OF_BIRTH",
+    "exact_text": "04/18/1997",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "A_NUMBER",
+    "exact_text": "A-203-555-914",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "PHONE_NUMBER",
+    "exact_text": "(832) 555-0198",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "ADDRESS",
+    "exact_text": "4417 Canal Street Apt 12B, Houston TX 77011",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "EOIR_CASE",
+    "exact_text": "EOIR-26-004889",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "MINOR_NAME",
+    "exact_text": "Sofia Rivera",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "STUDENT_ID",
+    "exact_text": "STU-392018",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "USCIS_RECEIPT",
+    "exact_text": "MSC2490123456",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Andres Castillo",
+    "note": "Scanned note"
+  },
+  {
+    "file": "07_scanned_walk_in_notes_image_only.pdf",
+    "page": 1,
+    "entity_type": "CLIENT_ID",
+    "exact_text": "C-2026-00417",
+    "note": "Scanned note"
+  },
+  {
+    "file": "08_attorney_review_worksheet.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Marisol Elena Rivera",
+    "note": "Client"
+  },
+  {
+    "file": "08_attorney_review_worksheet.pdf",
+    "page": 1,
+    "entity_type": "A_NUMBER",
+    "exact_text": "A-203-555-914",
+    "note": "A-number"
+  },
+  {
+    "file": "08_attorney_review_worksheet.pdf",
+    "page": 1,
+    "entity_type": "CLIENT_ID",
+    "exact_text": "C-2026-00417",
+    "note": "Clinic ID"
+  },
+  {
+    "file": "08_attorney_review_worksheet.pdf",
+    "page": 1,
+    "entity_type": "PERSON",
+    "exact_text": "Andres Castillo",
+    "note": "Conflict"
+  },
+  {
+    "file": "08_attorney_review_worksheet.pdf",
+    "page": 1,
+    "entity_type": "DATE",
+    "exact_text": "08/21/2026",
+    "note": "Deadline"
+  },
+  {
+    "file": "08_attorney_review_worksheet.pdf",
+    "page": 1,
+    "entity_type": "TIME",
+    "exact_text": "9:00 AM",
+    "note": "Deadline time"
+  },
+  {
+    "file": "08_attorney_review_worksheet.pdf",
+    "page": 1,
+    "entity_type": "PHONE_NUMBER",
+    "exact_text": "(832) 555-0198",
+    "note": "Phone"
+  },
+  {
+    "file": "08_attorney_review_worksheet.pdf",
+    "page": 1,
+    "entity_type": "EMAIL_ADDRESS",
+    "exact_text": "marisol.rivera.test@example.org",
+    "note": "Email"
+  }
+]

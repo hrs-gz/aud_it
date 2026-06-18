@@ -12,6 +12,7 @@ from backend.database import (
     DOC_STATUS_APPLYING,
     DOC_STATUS_DETECTING,
     DOC_STATUS_ERROR,
+    DOC_STATUS_EXPORTING,
     DOC_STATUS_OCR,
     DOC_STATUS_READY,
     DOC_STATUS_VERIFYING,
@@ -23,6 +24,29 @@ from backend.services.findings import persist_occurrences
 from backend.services.ocr import OCRError, run_ocr
 from backend.services.rules import build_ad_hoc_recognizers, list_rules
 from backend.services.verify import VerifyError, verify_document
+
+_BUSY_STATUSES = {
+    DOC_STATUS_OCR,
+    DOC_STATUS_DETECTING,
+    DOC_STATUS_APPLYING,
+    DOC_STATUS_VERIFYING,
+    DOC_STATUS_EXPORTING,
+}
+
+
+def recover_interrupted_jobs() -> int:
+    """Reset documents left in a busy status after a server restart."""
+    db = SessionLocal()
+    try:
+        stuck = db.query(Document).filter(Document.status.in_(_BUSY_STATUSES)).all()
+        for document in stuck:
+            document.status = DOC_STATUS_ERROR
+            document.status_detail = "Interrupted — run detection again"
+        if stuck:
+            db.commit()
+        return len(stuck)
+    finally:
+        db.close()
 
 
 def _set_status(db: Session, document: Document, status: str, detail: str | None = None) -> None:

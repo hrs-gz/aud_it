@@ -4,11 +4,19 @@ Local-first PDF redaction app. Import PDFs in batch, detect PII, review every fi
 
 ## Workflow
 
-`Import PDFs → Detect PII → Review → Approve → Apply → Verify → Export`
+`New project → Organize files → Redact → Review & Export`
+
+Within a project:
+
+1. **Organize** — add PDFs, rearrange page thumbnails, delete pages, merge documents, undo/redo
+2. **Redact** — detect PII, review findings, apply redactions, verify
+3. **Export** — final preview, redaction report, export PDFs and project ZIP
 
 Findings move through a staged lifecycle — nothing is redacted until you apply:
 
 `pending / needs_review → approved → applied → verified → exported` (or `ignored`)
+
+The dashboard at `/` lists projects. Open a project to continue at its saved step (`#/project/{id}/organize`, `redact`, or `export`).
 
 ## Features
 
@@ -102,6 +110,16 @@ All files are stored locally:
 | POST | `/api/rules/suggest` | Suggest regex from examples |
 | POST | `/api/rules/test` | Test a pattern against documents |
 | GET | `/api/presidio/recognizers` | Selectable entity types |
+| GET/POST | `/api/projects` | List / create projects |
+| GET/PATCH/DELETE | `/api/projects/{id}` | Project detail / rename / delete |
+| POST | `/api/projects/{id}/documents` | Upload PDFs to a project |
+| GET | `/api/projects/{id}/pages` | Organize step page slots |
+| PATCH | `/api/projects/{id}/pages/reorder` | Reorder page slots |
+| POST | `/api/projects/{id}/pages/delete` | Delete page slots (batch) |
+| POST | `/api/projects/{id}/merge-documents` | Merge documents by list order |
+| POST | `/api/projects/{id}/organize/undo` | Undo organize action |
+| POST | `/api/projects/{id}/organize/redo` | Redo organize action |
+| POST | `/api/projects/{id}/advance` | Materialize pages → redact step |
 
 ## Presidio Exploration
 

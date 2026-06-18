@@ -1,6 +1,10 @@
 /* App state, actions, and wiring for the three-panel review workflow. */
 
 const state = {
+  projects: [],
+  currentProjectId: null,
+  currentProject: null,
+  currentStep: null,
   documents: [],
   checkedDocIds: new Set(),
   currentDocId: null,
@@ -42,7 +46,9 @@ function groupKeysFor(finding) {
 // Data loading
 
 async function refreshDocuments() {
-  const result = await API.listDocuments();
+  const projectId = state.currentProjectId;
+  if (!projectId) return;
+  const result = await API.listDocuments(projectId);
   state.documents = result.documents;
 
   const ids = new Set(state.documents.map((d) => d.id));
@@ -57,6 +63,7 @@ async function refreshDocuments() {
 
   renderGlobalStatus();
   renderSidebar();
+  updateStepActions();
   updateViewerToolbar();
   schedulePollingIfBusy();
 }
@@ -81,17 +88,87 @@ async function refreshAll() {
   await loadPage();
 }
 
+async function loadRedactView() {
+  if (!state.currentProjectId) return;
+  showView("redact");
+  updateStepBreadcrumb("redact", state.currentProject);
+  state.currentProject = await API.getProject(state.currentProjectId);
+  await refreshAll();
+}
+
+async function handleRoute(route) {
+  if (route.view === "dashboard") {
+    await loadDashboardView();
+    return;
+  }
+
+  try {
+    state.currentProject = await API.getProject(route.projectId);
+    state.currentProjectId = route.projectId;
+    state.currentStep = route.step;
+
+    const order = ["organize", "redact", "export"];
+    const savedIdx = order.indexOf(state.currentProject.step || "organize");
+    const targetIdx = order.indexOf(route.step);
+
+    if (targetIdx > savedIdx) {
+      Router.navigate(state.currentProject.step, route.projectId, state.currentProject.step);
+      return;
+    }
+
+    if (route.step === "organize") await loadOrganizeView();
+    else if (route.step === "redact") await loadRedactView();
+    else if (route.step === "export") await loadExportView();
+  } catch (err) {
+    alert(err.message);
+    Router.navigate("dashboard");
+  }
+}
+
+function stopPolling() {
+  if (state.pollTimer) {
+    clearTimeout(state.pollTimer);
+    state.pollTimer = null;
+  }
+}
+
+function clearProjectSession() {
+  stopPolling();
+  state.documents = [];
+  state.checkedDocIds = new Set();
+  state.currentDocId = null;
+  state.currentPage = 0;
+  state.findings = [];
+  state.revealed = {};
+  state.selectedFindingIds = new Set();
+  state.activeFindingId = null;
+  state.currentStep = null;
+  const statusEl = document.getElementById("global-status");
+  if (statusEl) statusEl.innerHTML = "";
+  hidePopup();
+  exportModal.classList.add("hidden");
+  if (typeof closeRuleEditor === "function") closeRuleEditor();
+}
+
 function schedulePollingIfBusy() {
+  if (!state.currentProjectId) return;
   const busy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
   if (busy && !state.pollTimer) {
     state.pollTimer = setTimeout(async () => {
       state.pollTimer = null;
-      const wasBusy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
-      await refreshDocuments();
-      const stillBusy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
-      if (wasBusy && !stillBusy) {
-        await refreshFindings();
-        await loadPage();
+      if (!state.currentProjectId) return;
+      try {
+        const wasBusy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
+        await refreshDocuments();
+        const stillBusy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
+        if (wasBusy && !stillBusy) {
+          await refreshFindings();
+          await loadPage();
+        }
+      } catch (err) {
+        console.error("Document poll failed:", err);
+      } finally {
+        schedulePollingIfBusy();
       }
     }, 1200);
   }
@@ -191,6 +268,41 @@ function updateViewerToolbar() {
   redactedBtn.classList.toggle("active", state.showRedacted);
   originalBtn.classList.toggle("active", !state.showRedacted);
   document.getElementById("zoom-level").textContent = `${Math.round(state.zoom * 100)}%`;
+}
+
+function exportStepReadiness() {
+  const docs = state.documents.filter((d) => !d.archived);
+  if (!docs.length) {
+    return { ok: false, message: "Import documents and complete redaction before exporting." };
+  }
+  const busy = docs.filter((d) => BUSY_STATUSES.has(d.status));
+  if (busy.length) {
+    return {
+      ok: false,
+      message: "Wait for background processing to finish before continuing to export.",
+    };
+  }
+  if (docs.some((d) => !d.has_applied)) {
+    return {
+      ok: false,
+      message: "Apply redactions to all project documents before continuing to export.",
+    };
+  }
+  if (docs.some((d) => !d.verified_at)) {
+    return {
+      ok: false,
+      message: "Run verification or wait for automatic verification to finish before exporting.",
+    };
+  }
+  return { ok: true, message: "" };
+}
+
+function updateStepActions() {
+  const continueBtn = document.getElementById("continue-export-btn");
+  if (!continueBtn) return;
+  const readiness = exportStepReadiness();
+  continueBtn.disabled = !readiness.ok;
+  continueBtn.title = readiness.ok ? "" : readiness.message;
 }
 
 // ---------------------------------------------------------------------------
@@ -676,7 +788,7 @@ function initEvents() {
   fileInput.addEventListener("change", async () => {
     if (!fileInput.files.length) return;
     try {
-      const result = await API.upload(fileInput.files);
+      const result = await API.upload(fileInput.files, state.currentProjectId);
       if (result.errors.length) alert(result.errors.join("\n"));
       for (const doc of result.documents) state.checkedDocIds.add(doc.id);
       if (result.documents.length) {
@@ -703,7 +815,18 @@ function initEvents() {
   document.getElementById("batch-detect-btn").addEventListener("click", startBatchDetect);
   document.getElementById("batch-apply-btn").addEventListener("click", startBatchApply);
   document.getElementById("batch-verify-btn").addEventListener("click", startBatchVerify);
-  document.getElementById("batch-export-btn").addEventListener("click", openExportModal);
+  document.getElementById("continue-export-btn").addEventListener("click", async () => {
+    const readiness = exportStepReadiness();
+    if (!readiness.ok) {
+      alert(readiness.message);
+      return;
+    }
+    if (state.currentProjectId) {
+      await API.updateProject(state.currentProjectId, { step: "export" });
+      state.currentProject = await API.getProject(state.currentProjectId);
+      Router.navigate("export", state.currentProjectId, "export");
+    }
+  });
 
   // Collapsible panels
   document.querySelectorAll(".toggle-panel").forEach((btn) => {
@@ -860,11 +983,14 @@ function initEvents() {
 
 async function init() {
   initRuleModal();
+  initRouter();
+  initDashboard();
+  initOrganize();
+  initExportStep();
   initEvents();
-  // The recognizer catalog builds the Presidio analyzer on first call (slow);
-  // don't block the document list on it.
-  await Promise.all([loadRecognizerCatalog(), Actions.refreshRules(), refreshAll()]);
-  renderReview();
+  Router.onRoute(handleRoute);
+  loadRecognizerCatalog();
+  Actions.refreshRules();
 }
 
 init();

@@ -1,11 +1,11 @@
 from pathlib import Path
 
 import pymupdf as fitz
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from backend.database import Document, Export, get_db
+from backend.database import Document, Export, Project, get_db
 from backend.schemas import (
     DocumentListResponse,
     DocumentResponse,
@@ -23,6 +23,7 @@ from backend.services.pdf_ingest import (
     ingest_pdf,
     redacted_page_image_path,
 )
+from backend.services.organize import append_document_pages
 from backend.services.text_extract import extract_words, search_document
 from backend.services.verify import stored_report
 
@@ -68,6 +69,9 @@ def document_response(db: Session, document: Document, include_pages: bool = Tru
         verification_passed=report.passed if report else None,
         exported_at=document.exported_at,
         created_at=document.created_at,
+        project_id=document.project_id,
+        is_materialized=document.is_materialized,
+        archived=document.archived,
         ocr_errors=get_ocr_errors(document),
         finding_counts=counts,
         pages=pages,
@@ -76,8 +80,16 @@ def document_response(db: Session, document: Document, include_pages: bool = Tru
 
 @router.post("", response_model=UploadResponse)
 async def upload_documents(
-    files: list[UploadFile] = File(...), db: Session = Depends(get_db)
+    files: list[UploadFile] = File(...),
+    project_id: str | None = Query(None),
+    db: Session = Depends(get_db),
 ):
+    project = None
+    if project_id:
+        project = db.get(Project, project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
     documents: list[DocumentResponse] = []
     errors: list[str] = []
 
@@ -91,7 +103,17 @@ async def upload_documents(
             errors.append(f"{name}: empty file")
             continue
         try:
-            document = ingest_pdf(db, name, content)
+            document = ingest_pdf(
+                db,
+                name,
+                content,
+                project_id=project_id,
+                is_materialized=not project_id,
+            )
+            if project:
+                append_document_pages(db, project, document)
+                db.commit()
+                db.refresh(document)
             documents.append(document_response(db, document))
         except Exception:
             errors.append(f"{name}: failed to ingest (not a valid PDF?)")
@@ -103,8 +125,17 @@ async def upload_documents(
 
 
 @router.get("", response_model=DocumentListResponse)
-def list_documents(db: Session = Depends(get_db)):
-    documents = db.query(Document).order_by(Document.created_at).all()
+def list_documents(
+    project_id: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Document)
+    if project_id:
+        query = query.filter(
+            Document.project_id == project_id,
+            Document.archived.is_(False),
+        )
+    documents = query.order_by(Document.created_at).all()
     return DocumentListResponse(
         documents=[document_response(db, d) for d in documents]
     )

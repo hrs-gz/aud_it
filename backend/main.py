@@ -6,13 +6,16 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.config import settings
 from backend.database import init_db
-from backend.routers import batch, documents, findings, presidio, rules
+from backend.routers import batch, documents, findings, presidio, projects, rules
+from backend.services.batch import recover_interrupted_jobs
 
 init_db()
+recover_interrupted_jobs()
 
 app = FastAPI(title="aud_it", description="Local-first PDF redaction")
 
 app.include_router(documents.router)
+app.include_router(projects.router)
 app.include_router(findings.router)
 app.include_router(rules.router)
 app.include_router(batch.router)

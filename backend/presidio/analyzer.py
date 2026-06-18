@@ -1,3 +1,5 @@
+import threading
+
 import pymupdf as fitz
 
 from backend.database import Document
@@ -11,6 +13,7 @@ from backend.services.text_extract import extract_words
 _analyzer = None
 _analyzer_error: str | None = None
 _catalog: list[RecognizerCatalogEntry] | None = None
+_analyzer_lock = threading.Lock()
 
 RULE_RECOGNIZER_PREFIX = "rule:"
 
@@ -133,53 +136,54 @@ def analyze_document(
     occurrences: list[Occurrence] = []
 
     try:
-        for page_num, page in enumerate(pdf):
-            words = extract_words(page)
-            if not words:
-                continue
-
-            page_text = " ".join(w.text for w in words)
-            offsets = _word_offsets(words)
-
-            results = analyzer.analyze(
-                text=page_text,
-                language="en",
-                entities=target_entities,
-                score_threshold=score_threshold,
-                ad_hoc_recognizers=ad_hoc_recognizers or None,
-            )
-
-            for result in results:
-                hit_words = [
-                    words[i]
-                    for i, (w_start, w_end) in enumerate(offsets)
-                    if w_end > result.start and w_start < result.end
-                ]
-                if not hit_words:
+        with _analyzer_lock:
+            for page_num, page in enumerate(pdf):
+                words = extract_words(page)
+                if not words:
                     continue
 
-                rule_id: int | None = None
-                source = "auto"
-                metadata = result.recognition_metadata or {}
-                recognizer_name = metadata.get("recognizer_name", "")
-                if recognizer_name.startswith(RULE_RECOGNIZER_PREFIX):
-                    source = "rule"
-                    try:
-                        rule_id = int(recognizer_name[len(RULE_RECOGNIZER_PREFIX):])
-                    except ValueError:
-                        rule_id = None
+                page_text = " ".join(w.text for w in words)
+                offsets = _word_offsets(words)
 
-                occurrences.append(
-                    Occurrence(
-                        page_num=page_num,
-                        entity_type=result.entity_type,
-                        text=page_text[result.start : result.end],
-                        score=result.score,
-                        rects=_merge_words_into_line_rects(hit_words),
-                        rule_id=rule_id,
-                        source=source,
-                    )
+                results = analyzer.analyze(
+                    text=page_text,
+                    language="en",
+                    entities=target_entities,
+                    score_threshold=score_threshold,
+                    ad_hoc_recognizers=ad_hoc_recognizers or None,
                 )
+
+                for result in results:
+                    hit_words = [
+                        words[i]
+                        for i, (w_start, w_end) in enumerate(offsets)
+                        if w_end > result.start and w_start < result.end
+                    ]
+                    if not hit_words:
+                        continue
+
+                    rule_id: int | None = None
+                    source = "auto"
+                    metadata = result.recognition_metadata or {}
+                    recognizer_name = metadata.get("recognizer_name", "")
+                    if recognizer_name.startswith(RULE_RECOGNIZER_PREFIX):
+                        source = "rule"
+                        try:
+                            rule_id = int(recognizer_name[len(RULE_RECOGNIZER_PREFIX):])
+                        except ValueError:
+                            rule_id = None
+
+                    occurrences.append(
+                        Occurrence(
+                            page_num=page_num,
+                            entity_type=result.entity_type,
+                            text=page_text[result.start : result.end],
+                            score=result.score,
+                            rects=_merge_words_into_line_rects(hit_words),
+                            rule_id=rule_id,
+                            source=source,
+                        )
+                    )
     finally:
         pdf.close()
 
