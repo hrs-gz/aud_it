@@ -1,0 +1,57 @@
+name: Desktop Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feature/ux-workbench-improvements]
+    paths:
+      - "desktop.py"
+      - "aud_it.spec"
+      - "backend/**"
+      - "frontend/**"
+      - "requirements.txt"
+      - "scripts/stage_tesseract_win.ps1"
+      - ".github/workflows/desktop-win.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Tesseract (Chocolatey)
+        run: choco install tesseract -y --no-progress
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m spacy download en_core_web_lg
+
+      - name: Stage Tesseract for bundle
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts/stage_tesseract_win.ps1
+          if (-not (Test-Path vendor/tesseract/win64/tesseract.exe)) { exit 1 }
+
+      - name: Build desktop app
+        run: pyinstaller aud_it.spec
+
+      - name: Smoke test launcher imports
+        shell: pwsh
+        run: |
+          $exe = "dist/aud_it/aud_it.exe"
+          if (-not (Test-Path $exe)) { throw "Missing $exe" }
+          Write-Host "Built $exe ($(Get-ChildItem dist/aud_it -Recurse | Measure-Object -Property Length -Sum).Sum bytes total)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aud_it-windows
+          path: dist/aud_it/
+          retention-days: 14
