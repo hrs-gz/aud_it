@@ -30,7 +30,9 @@
   <main id="view-dashboard" class="view view-dashboard">
     <div class="dashboard-toolbar">
       <h2>Projects</h2>
-      <button id="new-project-btn" class="btn primary">+ New project</button>
+      <div class="dashboard-toolbar-actions">
+        <button id="new-project-btn" class="btn primary">+ New project</button>
+      </div>
     </div>
     <div id="project-grid" class="project-grid">
       <p class="hint">Loading projects…</p>
@@ -67,7 +69,7 @@
 
   <!-- Redact (existing workbench) -->
   <main id="view-redact" class="view view-redact hidden layout">
-    <aside class="sidebar left">
+    <aside id="sidebar-left" class="sidebar left">
       <section class="panel">
         <div class="panel-head">
           <h2>Documents</h2>
@@ -120,6 +122,10 @@
 
     <section class="viewer">
       <div class="viewer-toolbar">
+        <div class="toolbar-group pane-toggles">
+          <button id="toggle-left-pane" class="btn small" title="Toggle left panel">◧</button>
+          <button id="toggle-right-pane" class="btn small" title="Toggle right panel">◨</button>
+        </div>
         <div class="toolbar-group">
           <button class="btn small mode-btn active" data-mode="select" title="Select findings">Select</button>
           <button class="btn small mode-btn" data-mode="draw" title="Draw redaction box">Draw</button>
@@ -143,6 +149,8 @@
         </div>
       </div>
       <div class="viewer-scroll" id="viewer-scroll">
+        <button type="button" id="restore-left-pane" class="pane-restore pane-restore-left hidden" title="Show left panel">›</button>
+        <button type="button" id="restore-right-pane" class="pane-restore pane-restore-right hidden" title="Show right panel">‹</button>
         <div class="canvas-container" id="canvas-container">
           <canvas id="page-canvas"></canvas>
           <canvas id="overlay-canvas"></canvas>
@@ -151,25 +159,25 @@
       </div>
     </section>
 
-    <aside class="sidebar right">
+    <aside id="sidebar-right" class="sidebar right">
       <div class="review-header">
-        <div id="summary-chips" class="summary-chips"></div>
-        <div class="review-actions">
-          <button id="redact-selected-btn" class="btn small danger">Redact selected</button>
+        <div class="review-header-group">
+          <div id="summary-chips" class="summary-chips"></div>
+        </div>
+        <hr class="review-divider">
+        <div class="review-header-group review-actions">
+          <button id="mark-selected-btn" class="btn small secondary">Mark selected</button>
           <button id="ignore-selected-btn" class="btn small">Ignore selected</button>
-          <button id="redact-highconf-btn" class="btn small secondary">Redact all high-confidence</button>
+          <button id="mark-highconf-btn" class="btn small secondary">Mark all high-confidence</button>
         </div>
-        <div class="view-mode-toggle">
-          <button id="page-view-btn" class="btn small active">Page View</button>
-          <button id="pii-view-btn" class="btn small">PII View</button>
-        </div>
-        <div class="filters">
+        <hr class="review-divider">
+        <div class="review-header-group filters">
           <select id="filter-type"><option value="">All types</option></select>
           <select id="filter-status">
             <option value="">All statuses</option>
             <option value="pending">Pending</option>
             <option value="needs_review">Needs review</option>
-            <option value="approved">Approved</option>
+            <option value="approved">Marked for redaction</option>
             <option value="applied">Applied</option>
             <option value="ignored">Ignored</option>
           </select>
@@ -183,6 +191,10 @@
           <label class="conf-filter">≥ conf
             <input type="number" id="filter-confidence" min="0" max="1" step="0.05" placeholder="0">
           </label>
+        </div>
+        <div class="review-header-group view-mode-toggle view-toggle">
+          <button id="page-view-btn" class="btn small active">Page View</button>
+          <button id="pii-view-btn" class="btn small">PII View</button>
         </div>
       </div>
       <div id="review-body" class="review-body">
@@ -250,7 +262,7 @@
             <label class="field-label">Default action</label>
             <select id="rule-action">
               <option value="review">Mark for review</option>
-              <option value="approve">Auto-approve for redaction</option>
+              <option value="approve">Auto-mark for redaction</option>
             </select>
           </div>
         </div>
@@ -268,25 +280,45 @@
     </div>
   </div>
 
-  <div id="export-modal" class="modal-backdrop hidden">
-    <div class="modal">
+  <div id="hard-clear-modal" class="modal-backdrop hidden">
+    <div class="modal modal-narrow">
       <div class="modal-head">
-        <h2>Export</h2>
-        <button id="export-modal-close" class="btn small">✕</button>
+        <h2>Hard clear</h2>
+        <button id="hard-clear-modal-close" class="btn small">✕</button>
       </div>
       <div class="modal-body">
-        <div id="export-summary"></div>
-        <div id="export-results"></div>
+        <p class="hint warn-text">This permanently deletes <strong>all projects</strong>, documents, findings, and exports. Global detection rules are preserved.</p>
+        <p id="hard-clear-summary" class="hint"></p>
+        <label class="field-label" for="hard-clear-confirm">Type <code>DELETE ALL</code> to confirm</label>
+        <input type="text" id="hard-clear-confirm" placeholder="DELETE ALL" autocomplete="off">
       </div>
       <div class="modal-foot">
-        <button id="export-review-btn" class="btn small hidden">Review remaining</button>
         <span class="spacer"></span>
-        <button id="export-cancel-btn" class="btn small">Close</button>
-        <button id="export-anyway-btn" class="btn small danger hidden">Export anyway</button>
-        <button id="export-confirm-btn" class="btn small primary">Export</button>
+        <button id="hard-clear-cancel-btn" class="btn small">Cancel</button>
+        <button id="hard-clear-submit-btn" class="btn small danger" disabled>Clear everything</button>
       </div>
     </div>
   </div>
+
+  <div id="new-project-modal" class="modal-backdrop hidden">
+    <div class="modal modal-narrow">
+      <div class="modal-head">
+        <h2>New project</h2>
+        <button id="new-project-modal-close" class="btn small">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="field-label" for="new-project-name">Project name</label>
+        <input type="text" id="new-project-name" placeholder="Untitled project" value="Untitled project">
+      </div>
+      <div class="modal-foot">
+        <span class="spacer"></span>
+        <button id="new-project-cancel-btn" class="btn small">Cancel</button>
+        <button id="new-project-create-btn" class="btn small primary">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="hard-clear-btn" class="hard-clear-fab btn danger hidden" title="Hard clear all data">Hard clear</button>
 
   <script src="/js/api.js"></script>
   <script src="/js/router.js"></script>

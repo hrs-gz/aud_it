@@ -216,6 +216,12 @@ class RecognizerCatalogResponse(BaseModel):
     recognizers: list[RecognizerCatalogEntry]
 
 
+class PresidioStatusResponse(BaseModel):
+    status: str  # idle | loading | ready | error
+    error: str | None = None
+    recognizer_count: int | None = None
+
+
 class RuleCreate(BaseModel):
     name: str
     entity_type: str
@@ -391,3 +397,9 @@ class ProjectPagesDelete(BaseModel):
 class ProjectAdvanceResponse(BaseModel):
     project: ProjectResponse
     document: DocumentResponse
+
+
+class HardResetResponse(BaseModel):
+    projects_deleted: int
+    documents_deleted: int
+    rules_preserved: bool

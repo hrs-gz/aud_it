@@ -132,6 +132,10 @@ const API = {
   },
 
   // --- recognizers & rules ---
+  async getPresidioStatus() {
+    return _json(await fetch("/api/presidio/status"));
+  },
+
   async getRecognizers() {
     return _json(await fetch("/api/presidio/recognizers"));
   },
@@ -191,6 +195,10 @@ const API = {
 
   async deleteProject(id) {
     return _json(await fetch(`/api/projects/${id}`, { method: "DELETE" }));
+  },
+
+  async hardReset() {
+    return _post("/api/admin/hard-reset", {});
   },
 
   async uploadProjectDocuments(projectId, files) {

@@ -110,6 +110,17 @@ def delete_document_files(document: Document) -> None:
         shutil.rmtree(path, ignore_errors=True)
 
 
+def delete_document_record(db: Session, document: Document) -> None:
+    """Remove a document's organize slots, files, and DB row."""
+    from backend.database import ProjectPage
+
+    db.query(ProjectPage).filter(ProjectPage.source_document_id == document.id).delete(
+        synchronize_session=False
+    )
+    delete_document_files(document)
+    db.delete(document)
+
+
 def rerender_pages(db: Session, document: Document, pdf_path: Path) -> None:
     """Re-render the standard (working) page images and refresh word counts."""
     pdf = fitz.open(str(pdf_path))

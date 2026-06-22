@@ -124,7 +124,7 @@ function renderRulesList() {
       <input type="checkbox" ${rule.enabled ? "checked" : ""} title="Enabled">
       <div class="rule-main">
         <div class="rule-name">${rule.name}</div>
-        <div class="rule-meta">${rule.entity_type} · ${rule.default_action === "approve" ? "auto-approve" : "review"}</div>
+        <div class="rule-meta">${rule.entity_type} · ${rule.default_action === "approve" ? "auto-mark" : "review"}</div>
       </div>
     `;
     item.querySelector("input").addEventListener("click", (e) => {

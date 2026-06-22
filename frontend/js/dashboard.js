@@ -1,5 +1,7 @@
 /* Project dashboard: list, create, open, rename, delete. */
 
+let focusProjectIdAfterRender = null;
+
 async function refreshProjectList() {
   const grid = document.getElementById("project-grid");
   try {
@@ -78,6 +80,12 @@ function renderProjectGrid() {
     });
 
     grid.appendChild(card);
+
+    if (focusProjectIdAfterRender === project.id) {
+      nameInput.focus();
+      nameInput.select();
+      focusProjectIdAfterRender = null;
+    }
   }
 }
 
@@ -87,11 +95,27 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-async function createNewProject() {
+const newProjectModal = document.getElementById("new-project-modal");
+const newProjectNameInput = document.getElementById("new-project-name");
+
+function openNewProjectModal() {
+  newProjectNameInput.value = "Untitled project";
+  newProjectModal.classList.remove("hidden");
+  newProjectNameInput.focus();
+  newProjectNameInput.select();
+}
+
+function closeNewProjectModal() {
+  newProjectModal.classList.add("hidden");
+}
+
+async function submitNewProject() {
+  const name = newProjectNameInput.value.trim() || "Untitled project";
   try {
-    const project = await API.createProject();
+    const project = await API.createProject(name);
+    closeNewProjectModal();
+    focusProjectIdAfterRender = project.id;
     await refreshProjectList();
-    openProject(project.id, "organize");
   } catch (err) {
     alert(err.message);
   }
@@ -117,5 +141,64 @@ async function loadDashboardView() {
 }
 
 function initDashboard() {
-  document.getElementById("new-project-btn").addEventListener("click", createNewProject);
+  document.getElementById("new-project-btn").addEventListener("click", openNewProjectModal);
+  document.getElementById("new-project-create-btn").addEventListener("click", submitNewProject);
+  document.getElementById("new-project-cancel-btn").addEventListener("click", closeNewProjectModal);
+  document.getElementById("new-project-modal-close").addEventListener("click", closeNewProjectModal);
+  newProjectModal.addEventListener("click", (e) => {
+    if (e.target === newProjectModal) closeNewProjectModal();
+  });
+  newProjectNameInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitNewProject();
+    if (e.key === "Escape") closeNewProjectModal();
+  });
+
+  initHardClearModal();
+}
+
+const hardClearModal = document.getElementById("hard-clear-modal");
+const hardClearConfirmInput = document.getElementById("hard-clear-confirm");
+const hardClearSubmitBtn = document.getElementById("hard-clear-submit-btn");
+
+function openHardClearModal() {
+  const projectCount = state.projects.length;
+  const docCount = state.projects.reduce((n, p) => n + (p.document_count || 0), 0);
+  document.getElementById("hard-clear-summary").textContent =
+    `${projectCount} project${projectCount !== 1 ? "s" : ""}, ${docCount} document${docCount !== 1 ? "s" : ""} will be removed.`;
+  hardClearConfirmInput.value = "";
+  hardClearSubmitBtn.disabled = true;
+  hardClearModal.classList.remove("hidden");
+  hardClearConfirmInput.focus();
+}
+
+function closeHardClearModal() {
+  hardClearModal.classList.add("hidden");
+}
+
+async function submitHardClear() {
+  if (hardClearConfirmInput.value.trim() !== "DELETE ALL") return;
+  try {
+    await API.hardReset();
+    closeHardClearModal();
+    await loadDashboardView();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function initHardClearModal() {
+  document.getElementById("hard-clear-btn").addEventListener("click", openHardClearModal);
+  document.getElementById("hard-clear-cancel-btn").addEventListener("click", closeHardClearModal);
+  document.getElementById("hard-clear-modal-close").addEventListener("click", closeHardClearModal);
+  hardClearModal.addEventListener("click", (e) => {
+    if (e.target === hardClearModal) closeHardClearModal();
+  });
+  hardClearConfirmInput.addEventListener("input", () => {
+    hardClearSubmitBtn.disabled = hardClearConfirmInput.value.trim() !== "DELETE ALL";
+  });
+  hardClearConfirmInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !hardClearSubmitBtn.disabled) submitHardClear();
+    if (e.key === "Escape") closeHardClearModal();
+  });
+  hardClearSubmitBtn.addEventListener("click", submitHardClear);
 }

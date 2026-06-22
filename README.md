@@ -74,6 +74,16 @@ pytest
 
 Uses the synthetic corpus in `tests/redaction_test_pdfs/` (see `README_manifest.json`), including the intentionally unsafe black-box-overlay PDF.
 
+### Frontend E2E (Playwright)
+
+```bash
+pip install -r requirements-dev.txt
+playwright install chromium
+pytest tests/e2e -v
+```
+
+E2E tests use the `playwright` Python package directly (no `pytest-playwright` plugin required).
+
 ## Storage
 
 All files are stored locally:

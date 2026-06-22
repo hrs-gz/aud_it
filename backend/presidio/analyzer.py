@@ -14,14 +14,16 @@ _analyzer = None
 _analyzer_error: str | None = None
 _catalog: list[RecognizerCatalogEntry] | None = None
 _analyzer_lock = threading.Lock()
+_warmup_status = "idle"  # idle | loading | ready | error
+_warmup_done = threading.Event()
 
 RULE_RECOGNIZER_PREFIX = "rule:"
 
 
-def _get_analyzer():
+def _init_analyzer_sync() -> None:
     global _analyzer, _analyzer_error, _catalog
     if _analyzer is not None:
-        return _analyzer
+        return
     if _analyzer_error:
         raise RuntimeError(_analyzer_error)
 
@@ -44,7 +46,61 @@ def _get_analyzer():
         )
         raise RuntimeError(_analyzer_error) from exc
 
-    return _analyzer
+
+def warmup_analyzer() -> None:
+    global _warmup_status
+
+    with _analyzer_lock:
+        if _warmup_status in ("loading", "ready"):
+            return
+        if _warmup_status == "error":
+            return
+        _warmup_status = "loading"
+        _warmup_done.clear()
+
+    def _run() -> None:
+        global _warmup_status
+        try:
+            with _analyzer_lock:
+                _init_analyzer_sync()
+            _warmup_status = "ready"
+        except RuntimeError:
+            _warmup_status = "error"
+        finally:
+            _warmup_done.set()
+
+    threading.Thread(target=_run, daemon=True, name="presidio-warmup").start()
+
+
+def get_analyzer_status() -> dict:
+    count = None
+    if _catalog is not None:
+        count = len([e for e in _catalog if e.entity_type != "_error"])
+    return {
+        "status": _warmup_status,
+        "error": _analyzer_error,
+        "recognizer_count": count,
+    }
+
+
+def _get_analyzer():
+    global _warmup_status
+    if _warmup_status == "loading":
+        _warmup_done.wait(timeout=300)
+    if _analyzer is not None:
+        return _analyzer
+    if _analyzer_error:
+        raise RuntimeError(_analyzer_error)
+
+    with _analyzer_lock:
+        if _analyzer is not None:
+            return _analyzer
+        if _analyzer_error:
+            raise RuntimeError(_analyzer_error)
+        _init_analyzer_sync()
+        if _warmup_status == "idle":
+            _warmup_status = "ready"
+        return _analyzer
 
 
 def list_recognizers() -> list[RecognizerCatalogEntry]:

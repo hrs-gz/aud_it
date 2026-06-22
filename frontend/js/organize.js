@@ -55,6 +55,16 @@ function renderOrganizeDocs() {
   }
 }
 
+function toggleOrganizePageSelection(pageId) {
+  if (organizeState.selectedSlotIds.has(pageId)) {
+    organizeState.selectedSlotIds.delete(pageId);
+  } else {
+    organizeState.selectedSlotIds.add(pageId);
+  }
+  renderOrganizeGrid();
+  updateOrganizeToolbar();
+}
+
 function renderOrganizeGrid() {
   const grid = document.getElementById("organize-page-grid");
   grid.innerHTML = "";
@@ -82,11 +92,18 @@ function renderOrganizeGrid() {
       </div>
     `;
 
-    tile.querySelector("input").addEventListener("change", (e) => {
+    const checkInput = tile.querySelector("input");
+    checkInput.addEventListener("click", (e) => e.stopPropagation());
+    checkInput.addEventListener("change", (e) => {
       if (e.target.checked) organizeState.selectedSlotIds.add(page.id);
       else organizeState.selectedSlotIds.delete(page.id);
       renderOrganizeGrid();
       updateOrganizeToolbar();
+    });
+
+    tile.addEventListener("click", (e) => {
+      if (e.target.closest(".organize-tile-check")) return;
+      toggleOrganizePageSelection(page.id);
     });
 
     tile.addEventListener("dragstart", (e) => {

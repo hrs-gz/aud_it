@@ -1,7 +1,7 @@
 const STATUS_STYLES = {
   pending: { fill: "rgba(255, 193, 7, 0.30)", stroke: "rgba(255, 193, 7, 0.95)", dash: [] },
   needs_review: { fill: "rgba(255, 120, 40, 0.30)", stroke: "rgba(255, 120, 40, 0.95)", dash: [5, 3] },
-  approved: { fill: "rgba(229, 83, 83, 0.35)", stroke: "rgba(229, 83, 83, 0.95)", dash: [] },
+  approved: { fill: "rgba(79, 140, 255, 0.28)", stroke: "rgba(79, 140, 255, 0.95)", dash: [] },
   applied: { fill: "rgba(10, 10, 10, 0.85)", stroke: "rgba(0, 0, 0, 1)", dash: [] },
   ignored: { fill: "rgba(150, 150, 150, 0.15)", stroke: "rgba(150, 150, 150, 0.6)", dash: [2, 3] },
 };
@@ -32,6 +32,7 @@ class RedactionCanvas {
     this.isDrawing = false;
     this.isResizing = false;
     this.isTextSelecting = false;
+    this.isMarqueeSelecting = false;
     this.resizeHandle = null;
     this.dragStart = null;
     this.drawStart = null;
@@ -41,6 +42,7 @@ class RedactionCanvas {
 
     this.onBoxDrawn = null; // (pdfRect, screenPoint)
     this.onFindingSelected = null; // (findingId | null)
+    this.onFindingsMarqueeSelected = null; // (ids, additive)
     this.onManualUpdated = null; // (findingId, bbox)
     this.onTextSelected = null; // (text, screenPoint)
 
@@ -82,6 +84,22 @@ class RedactionCanvas {
   setShowOverlays(show) {
     this.showOverlays = show;
     this.render();
+  }
+
+  clear() {
+    this.img = null;
+    this.findings = [];
+    this.words = [];
+    this.searchMatches = [];
+    this.selectedFindingId = null;
+    this.pageCanvas.width = 0;
+    this.pageCanvas.height = 0;
+    this.overlayCanvas.width = 0;
+    this.overlayCanvas.height = 0;
+    this.container.style.width = "";
+    this.container.style.height = "";
+    this.pageCtx.clearRect(0, 0, 0, 0);
+    this.overlayCtx.clearRect(0, 0, 0, 0);
   }
 
   async loadPageImage(url) {
@@ -150,6 +168,20 @@ class RedactionCanvas {
     return null;
   }
 
+  findingsInScreenRect(rect) {
+    const ids = [];
+    for (const finding of this.findings) {
+      for (const r of finding.rects) {
+        const sr = this.pdfToScreen(r);
+        if (sr.x1 > rect.x0 && sr.x0 < rect.x1 && sr.y1 > rect.y0 && sr.y0 < rect.y1) {
+          ids.push(finding.id);
+          break;
+        }
+      }
+    }
+    return ids;
+  }
+
   getHandleAt(x, y, finding) {
     const r = this.pdfToScreen(finding);
     const size = 8;
@@ -201,9 +233,9 @@ class RedactionCanvas {
       return;
     }
 
-    this.selectedFindingId = null;
-    this.render();
-    if (this.onFindingSelected) this.onFindingSelected(null);
+    this.isMarqueeSelecting = true;
+    this.drawStart = pos;
+    this.tempRect = null;
   }
 
   onMouseMove(e) {
@@ -217,6 +249,12 @@ class RedactionCanvas {
 
     if (this.isTextSelecting && this.textSelStart) {
       this.textSelRect = this.normalizeRect(this.textSelStart.x, this.textSelStart.y, pos.x, pos.y);
+      this.render();
+      return;
+    }
+
+    if (this.isMarqueeSelecting && this.drawStart) {
+      this.tempRect = this.normalizeRect(this.drawStart.x, this.drawStart.y, pos.x, pos.y);
       this.render();
       return;
     }
@@ -288,6 +326,22 @@ class RedactionCanvas {
       }
     }
 
+    if (this.isMarqueeSelecting && this.drawStart) {
+      if (this.tempRect) {
+        const { x0, y0, x1, y1 } = this.tempRect;
+        if (Math.abs(x1 - x0) > 4 && Math.abs(y1 - y0) > 4) {
+          const ids = this.findingsInScreenRect(this.tempRect);
+          if (this.onFindingsMarqueeSelected) {
+            this.onFindingsMarqueeSelected(ids, e.shiftKey);
+          }
+        } else {
+          this.selectedFindingId = null;
+          this.render();
+          if (this.onFindingSelected) this.onFindingSelected(null);
+        }
+      }
+    }
+
     if ((this.isDragging || this.isResizing) && this.selectedFindingId && this.onManualUpdated) {
       const finding = this.findings.find((f) => f.id === this.selectedFindingId);
       if (finding) {
@@ -304,6 +358,7 @@ class RedactionCanvas {
     this.isResizing = false;
     this.isDrawing = false;
     this.isTextSelecting = false;
+    this.isMarqueeSelecting = false;
     this.resizeHandle = null;
     this.dragStart = null;
     this.drawStart = null;

@@ -54,6 +54,9 @@ function showView(viewName) {
   breadcrumb.classList.toggle("hidden", !inProject);
   projectTitle.classList.toggle("hidden", !inProject);
   closeBtn.classList.toggle("hidden", !inProject);
+
+  const hardClearFab = document.getElementById("hard-clear-btn");
+  if (hardClearFab) hardClearFab.classList.toggle("hidden", viewName !== "dashboard");
 }
 
 function updateStepBreadcrumb(currentStep, project) {

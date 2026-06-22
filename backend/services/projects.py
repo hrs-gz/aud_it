@@ -33,11 +33,10 @@ def get_project(db: Session, project_id: str) -> Project | None:
 
 def delete_project(db: Session, project: Project) -> None:
     docs = db.query(Document).filter(Document.project_id == project.id).all()
-    from backend.services.pdf_ingest import delete_document_files
+    from backend.services.pdf_ingest import delete_document_record
 
     for doc in docs:
-        delete_document_files(doc)
-        db.delete(doc)
+        delete_document_record(db, doc)
     db.delete(project)
     db.commit()
 

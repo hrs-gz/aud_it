@@ -19,7 +19,7 @@ from backend.services.findings import counts_by_page, counts_for_document
 from backend.services.ocr import OCRError, get_ocr_errors, run_ocr
 from backend.services.pdf_ingest import (
     current_pdf_path,
-    delete_document_files,
+    delete_document_record,
     ingest_pdf,
     redacted_page_image_path,
 )
@@ -149,8 +149,7 @@ def get_document(document_id: str, db: Session = Depends(get_db)):
 @router.delete("/{document_id}")
 def delete_document(document_id: str, db: Session = Depends(get_db)):
     document = _get_document(db, document_id)
-    delete_document_files(document)
-    db.delete(document)
+    delete_document_record(db, document)
     db.commit()
     return {"deleted": True}
 
@@ -185,7 +184,11 @@ def get_page_words(document_id: str, page_num: int, db: Session = Depends(get_db
     if page_num < 0 or page_num >= document.page_count:
         raise HTTPException(status_code=404, detail="Page not found")
 
-    pdf = fitz.open(str(current_pdf_path(document)))
+    pdf_path = current_pdf_path(document)
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Source PDF not found")
+
+    pdf = fitz.open(str(pdf_path))
     words = extract_words(pdf[page_num])
     pdf.close()
 

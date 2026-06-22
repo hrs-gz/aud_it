@@ -4,7 +4,7 @@
 const STATUS_LABELS = {
   pending: "Pending",
   needs_review: "Needs review",
-  approved: "Approved",
+  approved: "Marked",
   applied: "Applied",
   ignored: "Ignored",
 };
@@ -92,11 +92,11 @@ function findingCard(finding) {
     </div>
     <div class="card-row actions">
       ${isFinal ? "" : `
-        <button class="btn tiny danger card-redact">${finding.status === "approved" ? "Unmark" : "Redact"}</button>
+        <button class="btn tiny secondary card-mark">${finding.status === "approved" ? "Unmark" : "Mark"}</button>
         <button class="btn tiny card-ignore">${finding.status === "ignored" ? "Restore" : "Ignore"}</button>
       `}
       <button class="btn tiny card-jump">Jump</button>
-      ${finding.value_key && !isFinal ? '<button class="btn tiny card-redact-all">Redact all matching</button>' : ""}
+      ${finding.value_key && !isFinal ? '<button class="btn tiny secondary card-mark-all">Mark all matching</button>' : ""}
       ${finding.value_key ? '<button class="btn tiny card-rule">Create rule</button>' : ""}
       ${finding.source === "manual" && !isFinal ? '<button class="btn tiny card-delete">Delete</button>' : ""}
     </div>
@@ -121,12 +121,12 @@ function findingCard(finding) {
     const el = card.querySelector(selector);
     if (el) el.addEventListener("click", (e) => { e.stopPropagation(); handler(); });
   };
-  wire(".card-redact", () =>
+  wire(".card-mark", () =>
     Actions.setFindingStatus(finding.id, finding.status === "approved" ? "pending" : "approved"));
   wire(".card-ignore", () =>
     Actions.setFindingStatus(finding.id, finding.status === "ignored" ? "pending" : "ignored"));
   wire(".card-jump", () => Actions.jumpToFinding(finding));
-  wire(".card-redact-all", () => Actions.redactAllMatching(finding));
+  wire(".card-mark-all", () => Actions.markAllMatching(finding));
   wire(".card-rule", () => Actions.createRuleFromFinding(finding));
   wire(".card-delete", () => Actions.deleteFinding(finding.id));
 
@@ -168,7 +168,7 @@ function renderPageView(container, findings) {
         <button class="btn tiny group-toggle">${expanded ? "▾" : "▸"}</button>
         <span class="group-page-label">P${pageNum + 1}</span>
         <span class="group-page-summary">${summary}</span>
-        <button class="btn tiny danger page-redact" title="Mark all on page for redaction">Redact page</button>
+        <button class="btn tiny secondary page-mark" title="Mark all on page for redaction">Mark page</button>
         <button class="btn tiny page-ignore" title="Ignore all on page">Ignore</button>
       `;
       head.querySelector(".group-page-label").addEventListener("click", () =>
@@ -178,7 +178,7 @@ function renderPageView(container, findings) {
         else state.expandedGroups.add(groupKey);
         renderReview();
       });
-      head.querySelector(".page-redact").addEventListener("click", () =>
+      head.querySelector(".page-mark").addEventListener("click", () =>
         Actions.bulkPage(docId, pageNum, "approve"));
       head.querySelector(".page-ignore").addEventListener("click", () =>
         Actions.bulkPage(docId, pageNum, "ignore"));
@@ -220,7 +220,7 @@ function renderPiiView(container, findings) {
         <span class="group-page-label value">${maskedOrRevealed(sample) || "(area)"}</span>
         <span class="group-page-summary">× ${group.length}</span>
         ${allFinal ? '<span class="status-chip chip-applied">Applied</span>' : `
-          <button class="btn tiny danger group-redact">Redact all</button>
+          <button class="btn tiny secondary group-mark">Mark all</button>
           <button class="btn tiny group-ignore">Ignore all</button>
         `}
       `;
@@ -229,9 +229,9 @@ function renderPiiView(container, findings) {
         else state.expandedGroups.add(groupKey);
         renderReview();
       });
-      const redactBtn = head.querySelector(".group-redact");
-      if (redactBtn) {
-        redactBtn.addEventListener("click", () => Actions.redactAllMatching(sample));
+      const markBtn = head.querySelector(".group-mark");
+      if (markBtn) {
+        markBtn.addEventListener("click", () => Actions.markAllMatching(sample));
       }
       const ignoreBtn = head.querySelector(".group-ignore");
       if (ignoreBtn) {

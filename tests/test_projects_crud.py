@@ -68,3 +68,26 @@ def test_delete_project_removes_documents(db):
     with SessionLocal() as session:
         assert session.get(Project, project.id) is None
         assert session.get(Document, doc_id) is None
+
+
+def test_delete_document_removes_from_project_list(db):
+    from backend.services.organize import append_document_pages
+    from tests.conftest import ingest_test_pdf
+
+    project = create_project(db, "Doc delete")
+    doc = ingest_test_pdf(db, "01_text_pii_letter.pdf")
+    doc.project_id = project.id
+    append_document_pages(db, project, doc)
+    db.commit()
+
+    listed = client.get(f"/api/documents?project_id={project.id}").json()
+    assert len(listed["documents"]) == 1
+
+    res = client.delete(f"/api/documents/{doc.id}")
+    assert res.status_code == 200
+
+    listed = client.get(f"/api/documents?project_id={project.id}").json()
+    assert listed["documents"] == []
+
+    with SessionLocal() as session:
+        assert session.get(Document, doc.id) is None
