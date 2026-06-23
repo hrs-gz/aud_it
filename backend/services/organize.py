@@ -13,14 +13,13 @@ from backend.database import (
     PROJECT_STEP_ORGANIZE,
     PROJECT_STEP_REDACT,
     Document,
-    Finding,
     OrganizeAction,
     Project,
     ProjectPage,
 )
 from backend.services.pdf_ingest import (
     current_pdf_path,
-    delete_document_files,
+    delete_document_record,
     ingest_pdf,
 )
 
@@ -371,15 +370,9 @@ def materialize_project(db: Session, project: Project) -> Document:
         out_pdf.close()
         raise ValueError("Failed to build PDF from page slots")
 
-    # Remove old documents and findings
-    old_doc_ids = [d.id for d in source_docs]
-    db.query(Finding).filter(Finding.document_id.in_(old_doc_ids)).delete(
-        synchronize_session=False
-    )
+    # Remove old documents (slots first via delete_document_record)
     for old_doc in source_docs:
-        delete_document_files(old_doc)
-        db.delete(old_doc)
-    db.query(ProjectPage).filter(ProjectPage.project_id == project.id).delete()
+        delete_document_record(db, old_doc)
     db.flush()
 
     # Ingest merged PDF as materialized document
@@ -398,6 +391,7 @@ def materialize_project(db: Session, project: Project) -> Document:
         pdf_bytes,
         project_id=project.id,
         is_materialized=True,
+        commit=False,
     )
 
     # Repopulate slots from materialized doc

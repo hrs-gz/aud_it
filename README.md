@@ -74,6 +74,10 @@ pytest
 
 Uses the synthetic corpus in `tests/redaction_test_pdfs/` (see `README_manifest.json`), including the intentionally unsafe black-box-overlay PDF.
 
+### Database
+
+SQLite foreign key enforcement is enabled on every connection (`PRAGMA foreign_keys=ON`). During the organize step, `ProjectPage` slots reference source documents via a non-null FK; always remove slots before deleting documents (see `delete_document_record` in `backend/services/pdf_ingest.py`).
+
 ### Frontend E2E (Playwright)
 
 ```bash

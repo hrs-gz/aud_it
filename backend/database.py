@@ -9,6 +9,7 @@ from sqlalchemy import (
     String,
     Text,
     create_engine,
+    event,
     inspect,
     text as sql_text,
 )
@@ -227,6 +228,13 @@ class Export(Base):
 
 engine = create_engine(settings.database_url, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+
+@event.listens_for(engine, "connect")
+def _set_sqlite_pragma(dbapi_conn, _):
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 _DOCUMENT_MIGRATION_COLUMNS: dict[str, str] = {
     "status_detail": "TEXT",

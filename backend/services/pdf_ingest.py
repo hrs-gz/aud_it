@@ -17,6 +17,7 @@ def ingest_pdf(
     *,
     project_id: str | None = None,
     is_materialized: bool = False,
+    commit: bool = True,
 ) -> Document:
     doc_id = str(uuid.uuid4())
     doc_dir = settings.storage_dir / "originals" / doc_id
@@ -66,8 +67,11 @@ def ingest_pdf(
         pages=page_records,
     )
     db.add(document)
-    db.commit()
-    db.refresh(document)
+    if commit:
+        db.commit()
+        db.refresh(document)
+    else:
+        db.flush()
     return document
 
 
