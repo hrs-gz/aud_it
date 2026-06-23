@@ -12,17 +12,19 @@ _US_STATES = (
     "SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC"
 )
 
-_STREET_CANDIDATE = re.compile(
-    rf"\b\d{{1,6}}\s+"
-    rf"(?:[A-Za-z0-9#\-'.]+[\s,]*){{2,16}}"
+_STREET_START = re.compile(r"\b\d{1,6}\s+")
+_STREET_WINDOW = re.compile(
+    rf"^\d{{1,6}}\s+"
+    rf"(?:[A-Za-z0-9#\-'.]+[\s,]*){{1,10}}"
     rf"(?:{_US_STATES})\b"
     rf"(?:\s+\d{{5}}(?:-\d{{4}})?)?",
     re.IGNORECASE,
 )
+_MAX_STREET_WINDOW = 140
 
 _PO_BOX_CANDIDATE = re.compile(
     rf"\bP\.?\s*O\.?\s*Box\s+\d+[\s,]*"
-    rf"(?:[A-Za-z0-9#\-'.]+[\s,]*){{0,8}}"
+    rf"(?:[A-Za-z0-9#\-'.]+[\s,]*){{0,6}}"
     rf"(?:{_US_STATES})\b"
     rf"(?:\s+\d{{5}}(?:-\d{{4}})?)?",
     re.IGNORECASE,
@@ -40,6 +42,8 @@ _ADDRESS_END_LABELS = frozenset({"ZipCode", "StateName", "PlaceName"})
 _BASE_SCORE = 0.80
 _ZIP_BONUS = 0.05
 _MAX_SCORE = 0.90
+# usaddress is expensive on long spans; skip pathological candidates.
+_MAX_CANDIDATE_LEN = 220
 
 
 def _score_address(components: dict[str, str], addr_type: str) -> float | None:
@@ -63,7 +67,7 @@ def _score_address(components: dict[str, str], addr_type: str) -> float | None:
 def _refine_span(candidate: str, candidate_start: int) -> tuple[int, int, float] | None:
     leading = len(candidate) - len(candidate.lstrip(" \t,."))
     cleaned = candidate.strip(" \t,;.")
-    if not cleaned:
+    if not cleaned or len(cleaned) > _MAX_CANDIDATE_LEN:
         return None
 
     try:
@@ -105,6 +109,20 @@ def _refine_span(candidate: str, candidate_start: int) -> tuple[int, int, float]
         return base, base + len(cleaned), score
 
     return base + char_start, base + char_end, score
+
+
+def _iter_street_candidates(text: str) -> Iterable[tuple[int, int, str]]:
+    """Scan for street-number starts, then match inside a short window.
+
+    The previous whole-text regex could backtrack catastrophically on dense
+  legal prose with multiple state abbreviations."""
+    for start_match in _STREET_START.finditer(text):
+        window = text[start_match.start() : start_match.start() + _MAX_STREET_WINDOW]
+        match = _STREET_WINDOW.match(window)
+        if not match:
+            continue
+        span = match.group()
+        yield start_match.start(), start_match.start() + len(span), span
 
 
 def _iter_label_candidates(text: str) -> Iterable[tuple[int, int, str]]:
@@ -180,13 +198,11 @@ class UsAddressRecognizer(EntityRecognizer):
 
         candidates: list[tuple[int, int, str]] = []
 
-        for pattern in (_STREET_CANDIDATE, _PO_BOX_CANDIDATE):
-            for match in pattern.finditer(text):
-                candidates.append((match.start(), match.end(), match.group()))
+        for start, end, span in _iter_street_candidates(text):
+            candidates.append((start, end, span))
 
-        if nlp_artifacts is not None and nlp_artifacts.tokens is not None:
-            for sent in nlp_artifacts.tokens.sents:
-                candidates.append((sent.start_char, sent.end_char, sent.text))
+        for match in _PO_BOX_CANDIDATE.finditer(text):
+            candidates.append((match.start(), match.end(), match.group()))
 
         for start, end, fragment in _iter_label_candidates(text):
             candidates.append((start, end, fragment))

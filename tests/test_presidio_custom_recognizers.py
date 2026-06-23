@@ -18,9 +18,9 @@ TEST_PDF = ROOT / "tests" / "redaction_test_pdfs" / "01_text_pii_letter.pdf"
 MANIFEST = ROOT / "tests" / "redaction_test_pdfs" / "README_manifest.json"
 
 CUSTOM_ENTITIES = [
-    "MEDICAL_RECORD_NUMBER",
     "ACCOUNT_NUMBER",
     "CASE_ID",
+    "USCIS_RECEIPT_NUMBER",
 ]
 
 
@@ -75,17 +75,16 @@ def test_custom_recognizers_detect_ids_in_letter_pdf(analyzer, letter_text, mani
     assert detected_by_entity.get("CASE_ID") == manifest_values["case"]
 
 
-def test_mrn_recognizer_matches_manifest_pattern(analyzer, manifest_values):
-    sample = f"Patient record {manifest_values['mrn']} for intake."
+def test_uscis_receipt_recognizer(analyzer):
+    sample = "Your USCIS receipt number MSC1234567890 was assigned to the petition."
     results = analyzer.analyze(
         text=sample,
         language="en",
-        entities=["MEDICAL_RECORD_NUMBER"],
+        entities=["USCIS_RECEIPT_NUMBER"],
         score_threshold=0.5,
     )
-
     detected = {sample[r.start : r.end] for r in results}
-    assert manifest_values["mrn"] in detected
+    assert "MSC1234567890" in detected
 
 
 def test_list_recognizers_includes_custom_entities():
@@ -102,3 +101,6 @@ def test_list_recognizers_includes_custom_entities():
     entity_types = {entry.entity_type for entry in catalog}
     for entity in CUSTOM_ENTITIES:
         assert entity in entity_types
+
+    hidden = {"CRYPTO", "ORGANIZATION"}
+    assert hidden.isdisjoint(entity_types)

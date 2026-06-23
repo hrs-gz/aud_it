@@ -1,11 +1,11 @@
 from pathlib import Path
 
 import pymupdf as fitz
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from backend.database import Document, Export, get_db
+from backend.database import Document, Export, Project, get_db
 from backend.schemas import (
     DocumentListResponse,
     DocumentResponse,
@@ -19,10 +19,11 @@ from backend.services.findings import counts_by_page, counts_for_document
 from backend.services.ocr import OCRError, get_ocr_errors, run_ocr
 from backend.services.pdf_ingest import (
     current_pdf_path,
-    delete_document_files,
+    delete_document_record,
     ingest_pdf,
     redacted_page_image_path,
 )
+from backend.services.organize import append_document_pages
 from backend.services.text_extract import extract_words, search_document
 from backend.services.verify import stored_report
 
@@ -68,6 +69,9 @@ def document_response(db: Session, document: Document, include_pages: bool = Tru
         verification_passed=report.passed if report else None,
         exported_at=document.exported_at,
         created_at=document.created_at,
+        project_id=document.project_id,
+        is_materialized=document.is_materialized,
+        archived=document.archived,
         ocr_errors=get_ocr_errors(document),
         finding_counts=counts,
         pages=pages,
@@ -76,8 +80,16 @@ def document_response(db: Session, document: Document, include_pages: bool = Tru
 
 @router.post("", response_model=UploadResponse)
 async def upload_documents(
-    files: list[UploadFile] = File(...), db: Session = Depends(get_db)
+    files: list[UploadFile] = File(...),
+    project_id: str | None = Query(None),
+    db: Session = Depends(get_db),
 ):
+    project = None
+    if project_id:
+        project = db.get(Project, project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
     documents: list[DocumentResponse] = []
     errors: list[str] = []
 
@@ -91,7 +103,17 @@ async def upload_documents(
             errors.append(f"{name}: empty file")
             continue
         try:
-            document = ingest_pdf(db, name, content)
+            document = ingest_pdf(
+                db,
+                name,
+                content,
+                project_id=project_id,
+                is_materialized=not project_id,
+            )
+            if project:
+                append_document_pages(db, project, document)
+                db.commit()
+                db.refresh(document)
             documents.append(document_response(db, document))
         except Exception:
             errors.append(f"{name}: failed to ingest (not a valid PDF?)")
@@ -103,8 +125,17 @@ async def upload_documents(
 
 
 @router.get("", response_model=DocumentListResponse)
-def list_documents(db: Session = Depends(get_db)):
-    documents = db.query(Document).order_by(Document.created_at).all()
+def list_documents(
+    project_id: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Document)
+    if project_id:
+        query = query.filter(
+            Document.project_id == project_id,
+            Document.archived.is_(False),
+        )
+    documents = query.order_by(Document.created_at).all()
     return DocumentListResponse(
         documents=[document_response(db, d) for d in documents]
     )
@@ -118,8 +149,7 @@ def get_document(document_id: str, db: Session = Depends(get_db)):
 @router.delete("/{document_id}")
 def delete_document(document_id: str, db: Session = Depends(get_db)):
     document = _get_document(db, document_id)
-    delete_document_files(document)
-    db.delete(document)
+    delete_document_record(db, document)
     db.commit()
     return {"deleted": True}
 
@@ -154,7 +184,11 @@ def get_page_words(document_id: str, page_num: int, db: Session = Depends(get_db
     if page_num < 0 or page_num >= document.page_count:
         raise HTTPException(status_code=404, detail="Page not found")
 
-    pdf = fitz.open(str(current_pdf_path(document)))
+    pdf_path = current_pdf_path(document)
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Source PDF not found")
+
+    pdf = fitz.open(str(pdf_path))
     words = extract_words(pdf[page_num])
     pdf.close()
 

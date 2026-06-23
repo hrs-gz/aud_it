@@ -1,14 +1,6 @@
-from backend.presidio.recognizers import get_custom_recognizers
 from backend.schemas import RecognizerCatalogEntry
+
 CUSTOM_CATALOG: list[RecognizerCatalogEntry] = [
-    RecognizerCatalogEntry(
-        entity_type="MEDICAL_RECORD_NUMBER",
-        label="Medical Record Number",
-        description="Hospital MRN identifiers (e.g. MRN-00048192)",
-        group="custom",
-        custom=True,
-        default_enabled=True,
-    ),
     RecognizerCatalogEntry(
         entity_type="ACCOUNT_NUMBER",
         label="Account Number",
@@ -21,6 +13,14 @@ CUSTOM_CATALOG: list[RecognizerCatalogEntry] = [
         entity_type="CASE_ID",
         label="Case ID",
         description="Case reference numbers (e.g. CASE-2026-01984)",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
+    RecognizerCatalogEntry(
+        entity_type="CASE_NUMBER",
+        label="Case Number",
+        description="Court, matter, docket, or file numbers with label context",
         group="custom",
         custom=True,
         default_enabled=True,
@@ -49,6 +49,70 @@ CUSTOM_CATALOG: list[RecognizerCatalogEntry] = [
         custom=True,
         default_enabled=True,
     ),
+    RecognizerCatalogEntry(
+        entity_type="USCIS_RECEIPT_NUMBER",
+        label="USCIS Receipt Number",
+        description="USCIS receipt numbers (e.g. MSC1234567890)",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
+    RecognizerCatalogEntry(
+        entity_type="EOIR_ID",
+        label="EOIR ID",
+        description="Executive Office for Immigration Review identification numbers",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
+    RecognizerCatalogEntry(
+        entity_type="I94_NUMBER",
+        label="I-94 Number",
+        description="Arrival/departure record numbers on Form I-94",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
+    RecognizerCatalogEntry(
+        entity_type="PASSPORT_NUMBER",
+        label="Passport Number",
+        description="Passport numbers with label context",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
+    RecognizerCatalogEntry(
+        entity_type="HEARING_NUMBER",
+        label="Hearing Number",
+        description="Immigration court hearing numbers",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
+    RecognizerCatalogEntry(
+        entity_type="HEARING_ACCESS_CODE",
+        label="Hearing Access Code",
+        description="Virtual hearing passcodes and meeting IDs",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
+    RecognizerCatalogEntry(
+        entity_type="SCHOOL_ID",
+        label="School ID",
+        description="Student, campus, or university identification numbers",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
+    RecognizerCatalogEntry(
+        entity_type="GOVERNMENT_ID",
+        label="Government ID",
+        description="Driver license and state ID numbers with label context",
+        group="custom",
+        custom=True,
+        default_enabled=True,
+    ),
 ]
 
 BUILTIN_LABELS: dict[str, tuple[str, str]] = {
@@ -70,6 +134,28 @@ BUILTIN_LABELS: dict[str, tuple[str, str]] = {
     "CRYPTO": ("Crypto Wallet", "Cryptocurrency wallet addresses"),
 }
 
+HIDDEN_BUILTIN_ENTITIES: set[str] = {
+    "CRYPTO",
+    "IBAN_CODE",
+    "IP_ADDRESS",
+    "URL",
+    "NRP",
+    "MEDICAL_LICENSE",
+    "CREDIT_CARD",
+    "US_DRIVER_LICENSE",
+    "DATE_TIME",
+    "ORGANIZATION",
+}
+
+DEFAULT_ENABLED_BUILTINS: set[str] = {
+    "EMAIL_ADDRESS",
+    "PHONE_NUMBER",
+    "US_SSN",
+    "US_PASSPORT",
+    "PERSON",
+    "LOCATION",
+}
+
 
 def get_custom_entity_types() -> set[str]:
     return {entry.entity_type for entry in CUSTOM_CATALOG}
@@ -80,7 +166,7 @@ def build_catalog_from_registry(supported_entities: list[str]) -> list[Recognize
     catalog: list[RecognizerCatalogEntry] = []
 
     for entity_type in sorted(supported_entities):
-        if entity_type in custom_types:
+        if entity_type in custom_types or entity_type in HIDDEN_BUILTIN_ENTITIES:
             continue
         label, description = BUILTIN_LABELS.get(
             entity_type,
@@ -93,16 +179,7 @@ def build_catalog_from_registry(supported_entities: list[str]) -> list[Recognize
                 description=description,
                 group="builtin",
                 custom=False,
-                default_enabled=entity_type
-                in {
-                    "EMAIL_ADDRESS",
-                    "PHONE_NUMBER",
-                    "US_SSN",
-                    "US_PASSPORT",
-                    "PERSON",
-                    "LOCATION",
-                    "ORGANIZATION",
-                },
+                default_enabled=entity_type in DEFAULT_ENABLED_BUILTINS,
             )
         )
 

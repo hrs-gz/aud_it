@@ -14,3 +14,11 @@ data/
 # IDE
 .vscode/
 .idea/
+
+# Desktop vendor binaries (staged at build time; see vendor/tesseract/win64/README.md)
+vendor/tesseract/win64/*
+!vendor/tesseract/win64/README.md
+
+# PyInstaller output
+build/
+dist/

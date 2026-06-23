@@ -9,15 +9,67 @@
 <body>
   <header class="header">
     <div class="header-left">
-      <h1>aud_it</h1>
+      <h1><a href="#/" class="logo-link">aud_it</a></h1>
       <p class="subtitle">Local-first PDF redaction</p>
     </div>
-    <div id="global-status" class="global-status"></div>
+    <nav id="step-breadcrumb" class="step-breadcrumb hidden" aria-label="Workflow steps">
+      <button type="button" class="step-link" data-step="organize">Organize</button>
+      <span class="step-sep">→</span>
+      <button type="button" class="step-link" data-step="redact">Redact</button>
+      <span class="step-sep">→</span>
+      <button type="button" class="step-link" data-step="export">Export</button>
+    </nav>
+    <div class="header-right">
+      <span id="project-title" class="project-title hidden"></span>
+      <button id="close-project-btn" class="btn small hidden">Close project</button>
+      <div id="global-status" class="global-status"></div>
+    </div>
   </header>
 
-  <main class="layout">
-    <!-- LEFT: documents / pages / rules -->
-    <aside class="sidebar left">
+  <!-- Dashboard -->
+  <main id="view-dashboard" class="view view-dashboard">
+    <div class="dashboard-toolbar">
+      <h2>Projects</h2>
+      <div class="dashboard-toolbar-actions">
+        <button id="new-project-btn" class="btn primary">+ New project</button>
+      </div>
+    </div>
+    <div id="project-grid" class="project-grid">
+      <p class="hint">Loading projects…</p>
+    </div>
+  </main>
+
+  <!-- Organize -->
+  <main id="view-organize" class="view view-organize hidden">
+    <aside class="organize-sidebar">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Documents</h2>
+          <button id="organize-upload-btn" class="btn small primary">+ Add PDFs</button>
+          <input type="file" id="organize-file-input" accept="application/pdf" multiple hidden>
+        </div>
+        <div id="organize-doc-list" class="doc-list"><p class="hint">No documents yet.</p></div>
+      </section>
+    </aside>
+    <section class="organize-main">
+      <div class="organize-toolbar">
+        <button id="organize-undo-btn" class="btn small" disabled>Undo</button>
+        <button id="organize-redo-btn" class="btn small" disabled>Redo</button>
+        <button id="organize-merge-btn" class="btn small secondary">Merge documents</button>
+        <button id="organize-delete-pages-btn" class="btn small danger" disabled>Delete selected</button>
+        <span class="spacer"></span>
+        <span id="organize-page-count" class="hint"></span>
+        <button id="organize-continue-btn" class="btn primary">Continue to Redaction</button>
+      </div>
+      <div id="organize-page-grid" class="organize-page-grid">
+        <p class="hint">Add PDFs to start organizing pages.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Redact (existing workbench) -->
+  <main id="view-redact" class="view view-redact hidden layout">
+    <aside id="sidebar-left" class="sidebar left">
       <section class="panel">
         <div class="panel-head">
           <h2>Documents</h2>
@@ -33,7 +85,7 @@
           <button id="batch-detect-btn" class="btn small secondary">Detect</button>
           <button id="batch-apply-btn" class="btn small danger">Apply redactions</button>
           <button id="batch-verify-btn" class="btn small">Verify</button>
-          <button id="batch-export-btn" class="btn small primary">Export…</button>
+          <button id="continue-export-btn" class="btn small primary">Continue to Export</button>
         </div>
       </section>
 
@@ -68,9 +120,12 @@
       </section>
     </aside>
 
-    <!-- CENTER: viewer -->
     <section class="viewer">
       <div class="viewer-toolbar">
+        <div class="toolbar-group pane-toggles">
+          <button id="toggle-left-pane" class="btn small" title="Toggle left panel">◧</button>
+          <button id="toggle-right-pane" class="btn small" title="Toggle right panel">◨</button>
+        </div>
         <div class="toolbar-group">
           <button class="btn small mode-btn active" data-mode="select" title="Select findings">Select</button>
           <button class="btn small mode-btn" data-mode="draw" title="Draw redaction box">Draw</button>
@@ -94,6 +149,8 @@
         </div>
       </div>
       <div class="viewer-scroll" id="viewer-scroll">
+        <button type="button" id="restore-left-pane" class="pane-restore pane-restore-left hidden" title="Show left panel">›</button>
+        <button type="button" id="restore-right-pane" class="pane-restore pane-restore-right hidden" title="Show right panel">‹</button>
         <div class="canvas-container" id="canvas-container">
           <canvas id="page-canvas"></canvas>
           <canvas id="overlay-canvas"></canvas>
@@ -102,26 +159,25 @@
       </div>
     </section>
 
-    <!-- RIGHT: PII review pane -->
-    <aside class="sidebar right">
+    <aside id="sidebar-right" class="sidebar right">
       <div class="review-header">
-        <div id="summary-chips" class="summary-chips"></div>
-        <div class="review-actions">
-          <button id="redact-selected-btn" class="btn small danger">Redact selected</button>
+        <div class="review-header-group">
+          <div id="summary-chips" class="summary-chips"></div>
+        </div>
+        <hr class="review-divider">
+        <div class="review-header-group review-actions">
+          <button id="mark-selected-btn" class="btn small secondary">Mark selected</button>
           <button id="ignore-selected-btn" class="btn small">Ignore selected</button>
-          <button id="redact-highconf-btn" class="btn small secondary">Redact all high-confidence</button>
+          <button id="mark-highconf-btn" class="btn small secondary">Mark all high-confidence</button>
         </div>
-        <div class="view-mode-toggle">
-          <button id="page-view-btn" class="btn small active">Page View</button>
-          <button id="pii-view-btn" class="btn small">PII View</button>
-        </div>
-        <div class="filters">
+        <hr class="review-divider">
+        <div class="review-header-group filters">
           <select id="filter-type"><option value="">All types</option></select>
           <select id="filter-status">
             <option value="">All statuses</option>
             <option value="pending">Pending</option>
             <option value="needs_review">Needs review</option>
-            <option value="approved">Approved</option>
+            <option value="approved">Marked for redaction</option>
             <option value="applied">Applied</option>
             <option value="ignored">Ignored</option>
           </select>
@@ -136,6 +192,10 @@
             <input type="number" id="filter-confidence" min="0" max="1" step="0.05" placeholder="0">
           </label>
         </div>
+        <div class="review-header-group view-mode-toggle view-toggle">
+          <button id="page-view-btn" class="btn small active">Page View</button>
+          <button id="pii-view-btn" class="btn small">PII View</button>
+        </div>
       </div>
       <div id="review-body" class="review-body">
         <p class="hint">Run detection to see findings.</p>
@@ -143,10 +203,37 @@
     </aside>
   </main>
 
-  <!-- Popup action menu (draw box / text select) -->
+  <!-- Export step -->
+  <main id="view-export" class="view view-export hidden">
+    <div class="export-step-layout">
+      <section class="export-step-main">
+        <h2>Review &amp; Export</h2>
+        <div id="export-step-summary"></div>
+        <div id="export-step-results"></div>
+        <div class="export-step-actions">
+          <button id="export-step-back-btn" class="btn secondary">← Back to Redaction</button>
+          <button id="export-step-run-btn" class="btn primary">Export project</button>
+          <button id="export-step-anyway-btn" class="btn danger hidden">Export anyway</button>
+        </div>
+      </section>
+      <section class="export-step-preview">
+        <div class="viewer-toolbar">
+          <select id="export-preview-doc" class="export-preview-select"></select>
+          <div class="view-toggle">
+            <button id="export-preview-original" class="btn small active">Original</button>
+            <button id="export-preview-redacted" class="btn small">Redacted</button>
+          </div>
+        </div>
+        <div class="export-preview-frame">
+          <img id="export-preview-image" alt="Page preview" class="export-preview-image hidden">
+          <p id="export-preview-empty" class="hint">Select a document to preview.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
   <div id="popup-menu" class="popup-menu hidden"></div>
 
-  <!-- Rule editor modal -->
   <div id="rule-modal" class="modal-backdrop hidden">
     <div class="modal">
       <div class="modal-head">
@@ -175,7 +262,7 @@
             <label class="field-label">Default action</label>
             <select id="rule-action">
               <option value="review">Mark for review</option>
-              <option value="approve">Auto-approve for redaction</option>
+              <option value="approve">Auto-mark for redaction</option>
             </select>
           </div>
         </div>
@@ -193,28 +280,51 @@
     </div>
   </div>
 
-  <!-- Export dialog -->
-  <div id="export-modal" class="modal-backdrop hidden">
-    <div class="modal">
+  <div id="hard-clear-modal" class="modal-backdrop hidden">
+    <div class="modal modal-narrow">
       <div class="modal-head">
-        <h2>Export</h2>
-        <button id="export-modal-close" class="btn small">✕</button>
+        <h2>Hard clear</h2>
+        <button id="hard-clear-modal-close" class="btn small">✕</button>
       </div>
       <div class="modal-body">
-        <div id="export-summary"></div>
-        <div id="export-results"></div>
+        <p class="hint warn-text">This permanently deletes <strong>all projects</strong>, documents, findings, and exports. Global detection rules are preserved.</p>
+        <p id="hard-clear-summary" class="hint"></p>
+        <label class="field-label" for="hard-clear-confirm">Type <code>DELETE ALL</code> to confirm</label>
+        <input type="text" id="hard-clear-confirm" placeholder="DELETE ALL" autocomplete="off">
       </div>
       <div class="modal-foot">
-        <button id="export-review-btn" class="btn small hidden">Review remaining</button>
         <span class="spacer"></span>
-        <button id="export-cancel-btn" class="btn small">Close</button>
-        <button id="export-anyway-btn" class="btn small danger hidden">Export anyway</button>
-        <button id="export-confirm-btn" class="btn small primary">Export</button>
+        <button id="hard-clear-cancel-btn" class="btn small">Cancel</button>
+        <button id="hard-clear-submit-btn" class="btn small danger" disabled>Clear everything</button>
       </div>
     </div>
   </div>
 
+  <div id="new-project-modal" class="modal-backdrop hidden">
+    <div class="modal modal-narrow">
+      <div class="modal-head">
+        <h2>New project</h2>
+        <button id="new-project-modal-close" class="btn small">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="field-label" for="new-project-name">Project name</label>
+        <input type="text" id="new-project-name" placeholder="Untitled project" value="Untitled project">
+      </div>
+      <div class="modal-foot">
+        <span class="spacer"></span>
+        <button id="new-project-cancel-btn" class="btn small">Cancel</button>
+        <button id="new-project-create-btn" class="btn small primary">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="hard-clear-btn" class="hard-clear-fab btn danger hidden" title="Hard clear all data">Hard clear</button>
+
   <script src="/js/api.js"></script>
+  <script src="/js/router.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/organize.js"></script>
+  <script src="/js/export-step.js"></script>
   <script src="/js/canvas.js"></script>
   <script src="/js/sidebar.js"></script>
   <script src="/js/review.js"></script>

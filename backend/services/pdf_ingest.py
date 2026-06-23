@@ -10,7 +10,14 @@ from backend.database import Document, Page
 from backend.services.text_extract import extract_words, is_scanned_document
 
 
-def ingest_pdf(db: Session, filename: str, content: bytes) -> Document:
+def ingest_pdf(
+    db: Session,
+    filename: str,
+    content: bytes,
+    *,
+    project_id: str | None = None,
+    is_materialized: bool = False,
+) -> Document:
     doc_id = str(uuid.uuid4())
     doc_dir = settings.storage_dir / "originals" / doc_id
     doc_dir.mkdir(parents=True, exist_ok=True)
@@ -54,6 +61,8 @@ def ingest_pdf(db: Session, filename: str, content: bytes) -> Document:
         is_scanned=is_scanned_document(word_counts, settings.ocr_word_threshold),
         render_scale=render_scale,
         status="ready",
+        project_id=project_id,
+        is_materialized=is_materialized,
         pages=page_records,
     )
     db.add(document)
@@ -99,6 +108,17 @@ def delete_document_files(document: Document) -> None:
         settings.storage_dir / "exports" / document.id,
     ):
         shutil.rmtree(path, ignore_errors=True)
+
+
+def delete_document_record(db: Session, document: Document) -> None:
+    """Remove a document's organize slots, files, and DB row."""
+    from backend.database import ProjectPage
+
+    db.query(ProjectPage).filter(ProjectPage.source_document_id == document.id).delete(
+        synchronize_session=False
+    )
+    delete_document_files(document)
+    db.delete(document)
 
 
 def rerender_pages(db: Session, document: Document, pdf_path: Path) -> None:

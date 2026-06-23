@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     render_scale: float = 2.0
     ocr_word_threshold: int = 5
     frontend_dir: Path = project_root / "frontend"
+    allow_hard_reset: bool = True
 
 
 settings = Settings()

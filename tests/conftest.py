@@ -9,6 +9,7 @@ _TMP = Path(tempfile.mkdtemp(prefix="aud_it_tests_"))
 os.environ["AUD_IT_STORAGE_DIR"] = str(_TMP / "storage")
 os.environ["AUD_IT_DATA_DIR"] = str(_TMP / "data")
 os.environ["AUD_IT_DATABASE_URL"] = f"sqlite:///{_TMP / 'data' / 'test.db'}"
+os.environ["AUD_IT_ALLOW_HARD_RESET"] = "1"
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:

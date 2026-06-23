@@ -20,14 +20,20 @@ function _post(url, body) {
 
 const API = {
   // --- documents ---
-  async upload(files) {
+  async upload(files, projectId = null) {
     const form = new FormData();
     for (const file of files) form.append("files", file);
-    return _json(await fetch("/api/documents", { method: "POST", body: form }));
+    const url = projectId
+      ? `/api/documents?project_id=${encodeURIComponent(projectId)}`
+      : "/api/documents";
+    return _json(await fetch(url, { method: "POST", body: form }));
   },
 
-  async listDocuments() {
-    return _json(await fetch("/api/documents"));
+  async listDocuments(projectId = null) {
+    const url = projectId
+      ? `/api/documents?project_id=${encodeURIComponent(projectId)}`
+      : "/api/documents";
+    return _json(await fetch(url));
   },
 
   async getDocument(id) {
@@ -126,6 +132,10 @@ const API = {
   },
 
   // --- recognizers & rules ---
+  async getPresidioStatus() {
+    return _json(await fetch("/api/presidio/status"));
+  },
+
   async getRecognizers() {
     return _json(await fetch("/api/presidio/recognizers"));
   },
@@ -158,5 +168,82 @@ const API = {
 
   testPattern(pattern, documentIds) {
     return _post("/api/rules/test", { pattern, document_ids: documentIds });
+  },
+
+  // --- projects ---
+  async listProjects() {
+    return _json(await fetch("/api/projects"));
+  },
+
+  async createProject(name = "Untitled project") {
+    return _post("/api/projects", { name });
+  },
+
+  async getProject(id) {
+    return _json(await fetch(`/api/projects/${id}`));
+  },
+
+  async updateProject(id, patch) {
+    return _json(
+      await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      })
+    );
+  },
+
+  async deleteProject(id) {
+    return _json(await fetch(`/api/projects/${id}`, { method: "DELETE" }));
+  },
+
+  async hardReset() {
+    return _post("/api/admin/hard-reset", {});
+  },
+
+  async uploadProjectDocuments(projectId, files) {
+    const form = new FormData();
+    for (const file of files) form.append("files", file);
+    return _json(await fetch(`/api/projects/${projectId}/documents`, { method: "POST", body: form }));
+  },
+
+  async getProjectPages(projectId) {
+    return _json(await fetch(`/api/projects/${projectId}/pages`));
+  },
+
+  async reorderProjectPages(projectId, slotIds) {
+    return _json(
+      await fetch(`/api/projects/${projectId}/pages/reorder`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slot_ids: slotIds }),
+      })
+    );
+  },
+
+  async deleteProjectPages(projectId, slotIds) {
+    return _json(
+      await fetch(`/api/projects/${projectId}/pages/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slot_ids: slotIds }),
+      })
+    );
+  },
+
+  mergeProjectDocuments(projectId) {
+    return _post(`/api/projects/${projectId}/merge-documents`, {});
+  },
+
+  organizeUndo(projectId) {
+    return _post(`/api/projects/${projectId}/organize/undo`, {});
+  },
+
+  organizeRedo(projectId) {
+    return _post(`/api/projects/${projectId}/organize/redo`, {});
+  },
+
+  advanceProject(projectId) {
+    return _post(`/api/projects/${projectId}/advance`, {});
   },
 };

@@ -1,6 +1,10 @@
 /* App state, actions, and wiring for the three-panel review workflow. */
 
 const state = {
+  projects: [],
+  currentProjectId: null,
+  currentProject: null,
+  currentStep: null,
   documents: [],
   checkedDocIds: new Set(),
   currentDocId: null,
@@ -14,9 +18,14 @@ const state = {
   filters: { entityType: "", status: "", source: "", minConfidence: null },
   showRedacted: false,
   zoom: 1,
+  zoomIsFit: true,
+  lastFitKey: null,
+  paneVisibility: { left: true, right: true },
+  presidioStatus: "loading",
   rules: [],
   recognizers: [],
   pollTimer: null,
+  documentsRefreshGen: 0,
 };
 
 const canvas = new RedactionCanvas(
@@ -42,7 +51,12 @@ function groupKeysFor(finding) {
 // Data loading
 
 async function refreshDocuments() {
-  const result = await API.listDocuments();
+  const projectId = state.currentProjectId;
+  if (!projectId) return;
+  const gen = ++state.documentsRefreshGen;
+  const result = await API.listDocuments(projectId);
+  if (gen !== state.documentsRefreshGen) return;
+
   state.documents = result.documents;
 
   const ids = new Set(state.documents.map((d) => d.id));
@@ -57,8 +71,16 @@ async function refreshDocuments() {
 
   renderGlobalStatus();
   renderSidebar();
+  updateStepActions();
   updateViewerToolbar();
   schedulePollingIfBusy();
+}
+
+function resetViewerForEmptyDocList() {
+  state.activeFindingId = null;
+  state.showRedacted = false;
+  const selectAll = document.getElementById("select-all-docs");
+  if (selectAll) selectAll.checked = false;
 }
 
 async function refreshFindings() {
@@ -81,17 +103,86 @@ async function refreshAll() {
   await loadPage();
 }
 
+async function loadRedactView() {
+  if (!state.currentProjectId) return;
+  showView("redact");
+  updateStepBreadcrumb("redact", state.currentProject);
+  state.currentProject = await API.getProject(state.currentProjectId);
+  await refreshAll();
+}
+
+async function handleRoute(route) {
+  if (route.view === "dashboard") {
+    await loadDashboardView();
+    return;
+  }
+
+  try {
+    state.currentProject = await API.getProject(route.projectId);
+    state.currentProjectId = route.projectId;
+    state.currentStep = route.step;
+
+    const order = ["organize", "redact", "export"];
+    const savedIdx = order.indexOf(state.currentProject.step || "organize");
+    const targetIdx = order.indexOf(route.step);
+
+    if (targetIdx > savedIdx) {
+      Router.navigate(state.currentProject.step, route.projectId, state.currentProject.step);
+      return;
+    }
+
+    if (route.step === "organize") await loadOrganizeView();
+    else if (route.step === "redact") await loadRedactView();
+    else if (route.step === "export") await loadExportView();
+  } catch (err) {
+    alert(err.message);
+    Router.navigate("dashboard");
+  }
+}
+
+function stopPolling() {
+  if (state.pollTimer) {
+    clearTimeout(state.pollTimer);
+    state.pollTimer = null;
+  }
+}
+
+function clearProjectSession() {
+  stopPolling();
+  state.documents = [];
+  state.checkedDocIds = new Set();
+  state.currentDocId = null;
+  state.currentPage = 0;
+  state.findings = [];
+  state.revealed = {};
+  state.selectedFindingIds = new Set();
+  state.activeFindingId = null;
+  state.currentStep = null;
+  const statusEl = document.getElementById("global-status");
+  if (statusEl) statusEl.innerHTML = "";
+  hidePopup();
+  if (typeof closeRuleEditor === "function") closeRuleEditor();
+}
+
 function schedulePollingIfBusy() {
+  if (!state.currentProjectId) return;
   const busy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
   if (busy && !state.pollTimer) {
     state.pollTimer = setTimeout(async () => {
       state.pollTimer = null;
-      const wasBusy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
-      await refreshDocuments();
-      const stillBusy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
-      if (wasBusy && !stillBusy) {
-        await refreshFindings();
-        await loadPage();
+      if (!state.currentProjectId) return;
+      try {
+        const wasBusy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
+        await refreshDocuments();
+        const stillBusy = state.documents.some((d) => BUSY_STATUSES.has(d.status));
+        if (wasBusy && !stillBusy) {
+          await refreshFindings();
+          await loadPage();
+        }
+      } catch (err) {
+        console.error("Document poll failed:", err);
+      } finally {
+        schedulePollingIfBusy();
       }
     }, 1200);
   }
@@ -99,29 +190,110 @@ function schedulePollingIfBusy() {
 
 function renderGlobalStatus() {
   const el = document.getElementById("global-status");
+  const parts = [];
+
+  if (state.presidioStatus === "loading") {
+    parts.push("Loading detection engine…");
+  } else if (state.presidioStatus === "error") {
+    parts.push('<span class="fail">Detection engine unavailable</span>');
+  }
+
   const counts = {};
   for (const doc of state.documents) {
     if (BUSY_STATUSES.has(doc.status)) counts[doc.status] = (counts[doc.status] || 0) + 1;
   }
-  const parts = Object.entries(counts).map(([status, n]) => {
-    const labels = {
-      ocr: "Running OCR",
-      detecting: "Detecting",
-      applying: "Applying redactions",
-      verifying: "Verifying",
-      exporting: "Exporting",
-    };
-    return `${labels[status] || status} ${n} doc(s)`;
-  });
+  parts.push(
+    ...Object.entries(counts).map(([status, n]) => {
+      const labels = {
+        ocr: "Running OCR",
+        detecting: "Detecting",
+        applying: "Applying redactions",
+        verifying: "Verifying",
+        exporting: "Exporting",
+      };
+      return `${labels[status] || status} ${n} doc(s)`;
+    })
+  );
   const errors = state.documents.filter((d) => d.status === "error").length;
   if (errors) parts.push(`<span class="fail">${errors} error(s)</span>`);
+
+  const showSpinner = state.presidioStatus === "loading" || Object.keys(counts).length > 0;
   el.innerHTML = parts.length
-    ? `<span class="spinner"></span> ${parts.join(" · ")}`
+    ? `${showSpinner ? '<span class="spinner"></span> ' : ""}${parts.join(" · ")}`
     : "";
+}
+
+function updateDetectButtonState() {
+  const btn = document.getElementById("batch-detect-btn");
+  if (!btn) return;
+  const ready = state.presidioStatus === "ready";
+  btn.disabled = !ready;
+  btn.title = ready ? "" : "Waiting for detection engine to finish loading";
 }
 
 // ---------------------------------------------------------------------------
 // Viewer
+
+function computeFitZoom(img) {
+  const viewerEl = document.getElementById("viewer-scroll");
+  if (!viewerEl || !img) return 1;
+  const pad = 24;
+  const fitW = (viewerEl.clientWidth - pad) / img.width;
+  const fitH = (viewerEl.clientHeight - pad) / img.height;
+  const fit = Math.min(fitW, fitH);
+  return Math.min(4, Math.max(0.25, fit));
+}
+
+async function applyFitZoomIfNeeded() {
+  if (!state.zoomIsFit || !canvas.img) return;
+  state.zoom = computeFitZoom(canvas.img);
+  canvas.setZoom(state.zoom);
+  updateViewerToolbar();
+}
+
+function loadPaneVisibility() {
+  try {
+    const saved = localStorage.getItem("aud_it_pane_visibility");
+    if (saved) state.paneVisibility = { ...state.paneVisibility, ...JSON.parse(saved) };
+  } catch (_) { /* ignore */ }
+}
+
+function savePaneVisibility() {
+  try {
+    localStorage.setItem("aud_it_pane_visibility", JSON.stringify(state.paneVisibility));
+  } catch (_) { /* ignore */ }
+}
+
+function applyPaneVisibility() {
+  const layout = document.getElementById("view-redact");
+  if (!layout) return;
+  layout.classList.toggle("left-hidden", !state.paneVisibility.left);
+  layout.classList.toggle("right-hidden", !state.paneVisibility.right);
+
+  const toggleLeft = document.getElementById("toggle-left-pane");
+  const toggleRight = document.getElementById("toggle-right-pane");
+  if (toggleLeft) toggleLeft.classList.toggle("active", state.paneVisibility.left);
+  if (toggleRight) toggleRight.classList.toggle("active", state.paneVisibility.right);
+
+  const restoreLeft = document.getElementById("restore-left-pane");
+  const restoreRight = document.getElementById("restore-right-pane");
+  if (restoreLeft) restoreLeft.classList.toggle("hidden", state.paneVisibility.left);
+  if (restoreRight) restoreRight.classList.toggle("hidden", state.paneVisibility.right);
+
+  applyFitZoomIfNeeded();
+}
+
+function togglePane(side) {
+  state.paneVisibility[side] = !state.paneVisibility[side];
+  savePaneVisibility();
+  applyPaneVisibility();
+}
+
+let resizeFitTimer = null;
+function scheduleFitZoomOnResize() {
+  clearTimeout(resizeFitTimer);
+  resizeFitTimer = setTimeout(() => applyFitZoomIfNeeded(), 150);
+}
 
 async function loadPage() {
   const doc = currentDoc();
@@ -131,6 +303,15 @@ async function loadPage() {
   if (!doc) {
     emptyEl.classList.remove("hidden");
     container.classList.add("hidden");
+    canvas.clear();
+    state.activeFindingId = null;
+    state.showRedacted = false;
+    state.currentPage = 0;
+    document.getElementById("page-indicator").textContent = "—";
+    const selectAll = document.getElementById("select-all-docs");
+    if (selectAll) selectAll.checked = false;
+    updateViewerToolbar();
+    renderPageStrip();
     return;
   }
   emptyEl.classList.add("hidden");
@@ -155,6 +336,17 @@ async function loadPage() {
       updateViewerToolbar();
       await canvas.loadPageImage(API.pageImageUrl(doc.id, state.currentPage, "original"));
     }
+  }
+
+  const fitKey = `${doc.id}:${state.currentPage}`;
+  if (fitKey !== state.lastFitKey) {
+    state.zoomIsFit = true;
+    state.lastFitKey = fitKey;
+  }
+  if (state.zoomIsFit && canvas.img) {
+    state.zoom = computeFitZoom(canvas.img);
+    canvas.setZoom(state.zoom);
+    updateViewerToolbar();
   }
 
   updateCanvasFindings();
@@ -191,6 +383,41 @@ function updateViewerToolbar() {
   redactedBtn.classList.toggle("active", state.showRedacted);
   originalBtn.classList.toggle("active", !state.showRedacted);
   document.getElementById("zoom-level").textContent = `${Math.round(state.zoom * 100)}%`;
+}
+
+function exportStepReadiness() {
+  const docs = state.documents.filter((d) => !d.archived);
+  if (!docs.length) {
+    return { ok: false, message: "Import documents and complete redaction before exporting." };
+  }
+  const busy = docs.filter((d) => BUSY_STATUSES.has(d.status));
+  if (busy.length) {
+    return {
+      ok: false,
+      message: "Wait for background processing to finish before continuing to export.",
+    };
+  }
+  if (docs.some((d) => !d.has_applied)) {
+    return {
+      ok: false,
+      message: "Apply redactions to all project documents before continuing to export.",
+    };
+  }
+  if (docs.some((d) => !d.verified_at)) {
+    return {
+      ok: false,
+      message: "Run verification or wait for automatic verification to finish before exporting.",
+    };
+  }
+  return { ok: true, message: "" };
+}
+
+function updateStepActions() {
+  const continueBtn = document.getElementById("continue-export-btn");
+  if (!continueBtn) return;
+  const readiness = exportStepReadiness();
+  continueBtn.disabled = !readiness.ok;
+  continueBtn.title = readiness.ok ? "" : readiness.message;
 }
 
 // ---------------------------------------------------------------------------
@@ -256,8 +483,55 @@ const Actions = {
   async deleteDocument(docId) {
     const doc = state.documents.find((d) => d.id === docId);
     if (!confirm(`Remove ${doc ? doc.original_filename : "document"} from the project? The original file on disk is yours and unaffected.`)) return;
-    await API.deleteDocument(docId);
-    await refreshAll();
+
+    stopPolling();
+    state.documentsRefreshGen++;
+
+    const snapshot = {
+      documents: state.documents,
+      currentDocId: state.currentDocId,
+      currentPage: state.currentPage,
+      checkedDocIds: new Set(state.checkedDocIds),
+      lastFitKey: state.lastFitKey,
+      activeFindingId: state.activeFindingId,
+      showRedacted: state.showRedacted,
+    };
+
+    state.documents = state.documents.filter((d) => d.id !== docId);
+    state.checkedDocIds.delete(docId);
+    if (state.currentDocId === docId) {
+      state.currentDocId = state.documents[0]?.id ?? null;
+      state.currentPage = 0;
+      state.lastFitKey = null;
+    }
+    if (!state.documents.length) {
+      resetViewerForEmptyDocList();
+    }
+
+    renderSidebar();
+    updateViewerToolbar();
+    await refreshFindings();
+    await loadPage();
+
+    try {
+      await API.deleteDocument(docId);
+      await refreshDocuments();
+      await refreshFindings();
+      await loadPage();
+    } catch (err) {
+      state.documents = snapshot.documents;
+      state.currentDocId = snapshot.currentDocId;
+      state.currentPage = snapshot.currentPage;
+      state.checkedDocIds = snapshot.checkedDocIds;
+      state.lastFitKey = snapshot.lastFitKey;
+      state.activeFindingId = snapshot.activeFindingId;
+      state.showRedacted = snapshot.showRedacted;
+      renderSidebar();
+      updateViewerToolbar();
+      await refreshFindings();
+      await loadPage();
+      alert(err.message);
+    }
   },
 
   async goToPage(pageNum) {
@@ -302,7 +576,7 @@ const Actions = {
     await refreshDocuments();
   },
 
-  async redactAllMatching(finding) {
+  async markAllMatching(finding) {
     await API.bulkFindings("approve", {
       document_ids: Actions.scopeDocIds(),
       value_key: finding.value_key,
@@ -377,6 +651,27 @@ canvas.onFindingSelected = (findingId) => {
   }
 };
 
+canvas.onFindingsMarqueeSelected = (ids, additive) => {
+  if (additive) {
+    for (const id of ids) state.selectedFindingIds.add(id);
+  } else {
+    state.selectedFindingIds = new Set(ids);
+  }
+  if (ids.length) {
+    state.activeFindingId = ids[ids.length - 1];
+    canvas.selectById(state.activeFindingId);
+    const finding = state.findings.find((f) => f.id === state.activeFindingId);
+    if (finding) {
+      for (const key of groupKeysFor(finding)) state.expandedGroups.add(key);
+    }
+  }
+  renderReview();
+  if (state.activeFindingId) {
+    const card = document.querySelector(`[data-finding-id="${state.activeFindingId}"]`);
+    if (card) card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+};
+
 canvas.onBoxDrawn = (pdfRect, point) => {
   const doc = currentDoc();
   if (!doc) return;
@@ -393,8 +688,8 @@ canvas.onBoxDrawn = (pdfRect, point) => {
 
   showPopup(
     [
-      { label: "Redact area (this page)", danger: true, onClick: () => create({}) },
-      { label: "Apply to all pages", danger: true, onClick: () => create({ all_pages: true }) },
+      { label: "Mark area (this page)", onClick: () => create({}) },
+      { label: "Mark area (all pages)", onClick: () => create({ all_pages: true }) },
       { label: "Cancel", onClick: () => {} },
     ],
     point
@@ -461,6 +756,10 @@ function renderRecognizerGroup(title, recognizers) {
 
 async function loadRecognizerCatalog() {
   const container = document.getElementById("recognizer-catalog");
+  if (state.presidioStatus === "loading") {
+    container.innerHTML = '<p class="hint">Loading recognizers...</p>';
+    return;
+  }
   try {
     const result = await API.getRecognizers();
     const recognizers = result.recognizers || [];
@@ -492,6 +791,33 @@ async function loadRecognizerCatalog() {
     }
   } catch (err) {
     container.innerHTML = `<p class="hint">${err.message}</p>`;
+  }
+  updateDetectButtonState();
+}
+
+async function waitForPresidioReady() {
+  const container = document.getElementById("recognizer-catalog");
+  container.innerHTML = '<p class="hint">Loading recognizers...</p>';
+  updateDetectButtonState();
+  renderGlobalStatus();
+
+  while (true) {
+    try {
+      const status = await API.getPresidioStatus();
+      state.presidioStatus = status.status;
+      if (status.status === "ready" || status.status === "error") {
+        renderGlobalStatus();
+        await loadRecognizerCatalog();
+        return;
+      }
+    } catch (_) {
+      state.presidioStatus = "error";
+      renderGlobalStatus();
+      await loadRecognizerCatalog();
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 500));
+    renderGlobalStatus();
   }
 }
 
@@ -554,119 +880,6 @@ async function startBatchVerify() {
 }
 
 // ---------------------------------------------------------------------------
-// Export dialog
-
-const exportModal = document.getElementById("export-modal");
-let exportDocIds = [];
-
-function verificationSummaryHtml(report) {
-  if (!report) return "";
-  let html = "<ul class='verify-checks'>";
-  for (const check of report.checks) {
-    html += `<li class="${check.passed ? "pass" : "fail"}">${check.passed ? "✓" : "✗"} ${check.label}${check.detail ? ` — ${check.detail}` : ""}</li>`;
-  }
-  html += "</ul>";
-  if (report.residual_findings.length) {
-    html += "<p class='fail'>Potential remaining PII:</p><ul class='verify-checks'>";
-    for (const r of report.residual_findings) {
-      html += `<li class="fail">${r.entity_type} — ${r.masked_text} (p. ${r.page_num + 1})</li>`;
-    }
-    html += "</ul>";
-  }
-  return html;
-}
-
-async function openExportModal() {
-  exportDocIds = requireScope();
-  if (!exportDocIds) return;
-
-  document.getElementById("export-results").innerHTML = "";
-  document.getElementById("export-anyway-btn").classList.add("hidden");
-  document.getElementById("export-review-btn").classList.add("hidden");
-  document.getElementById("export-confirm-btn").classList.remove("hidden");
-
-  const summary = document.getElementById("export-summary");
-  summary.innerHTML = "<p class='hint'>Checking documents…</p>";
-  exportModal.classList.remove("hidden");
-
-  let html = "";
-  let anyIssue = false;
-  for (const docId of exportDocIds) {
-    const doc = state.documents.find((d) => d.id === docId);
-    if (!doc) continue;
-    const counts = doc.finding_counts || {};
-    const unresolved = (counts.pending || 0) + (counts.needs_review || 0);
-
-    let status;
-    if (!doc.has_applied) {
-      status = '<span class="fail">no applied redactions</span>';
-      anyIssue = true;
-    } else if (doc.verification_passed === true) {
-      status = '<span class="pass">verification passed</span>';
-    } else if (doc.verification_passed === false) {
-      status = '<span class="fail">verification found issues</span>';
-      anyIssue = true;
-    } else {
-      status = '<span class="hint">not verified yet (will verify on export)</span>';
-    }
-    if (unresolved) {
-      status += ` · <span class="fail">${unresolved} unresolved finding(s)</span>`;
-      anyIssue = true;
-    }
-
-    html += `<div class="export-doc-row"><strong>${doc.original_filename}</strong><br>${status}`;
-    if (doc.has_applied && doc.verification_passed === false) {
-      try {
-        const report = await API.getVerification(doc.id);
-        html += verificationSummaryHtml(report);
-      } catch (_) { /* no report */ }
-    }
-    html += "</div>";
-  }
-  if (anyIssue) {
-    html += "<p class='fail'>Some documents have unresolved issues. Export will skip them unless you choose Export anyway.</p>";
-    document.getElementById("export-review-btn").classList.remove("hidden");
-  }
-  summary.innerHTML = html || "<p class='hint'>Nothing to export.</p>";
-}
-
-async function runExport(allowUnverified) {
-  const resultsEl = document.getElementById("export-results");
-  resultsEl.innerHTML = "<p class='hint'>Exporting…</p>";
-  try {
-    const result = await API.batchExport(exportDocIds, allowUnverified);
-    let html = "";
-    if (result.warnings.length) {
-      html += "<ul class='verify-checks'>" +
-        result.warnings.map((w) => `<li class="fail">⚠ ${w}</li>`).join("") +
-        "</ul>";
-    }
-    html += "<ul class='export-links'>";
-    for (const item of result.items) {
-      const doc = state.documents.find((d) => d.id === item.document_id);
-      const name = doc ? doc.original_filename : item.document_id;
-      if (item.download_url) {
-        html += `<li class="pass"><a href="${item.download_url}" download>⬇ ${item.filename}</a></li>`;
-      } else {
-        html += `<li class="fail">${name}: ${item.skipped_reason}</li>`;
-      }
-    }
-    html += "</ul>";
-    if (result.zip_url) {
-      html += `<p><a class="btn small primary" href="${result.zip_url}" download>⬇ Download batch ZIP (PDFs + audit report + CSV + verification report)</a></p>`;
-    }
-    resultsEl.innerHTML = html;
-
-    const anySkipped = result.items.some((i) => i.skipped_reason);
-    document.getElementById("export-anyway-btn").classList.toggle("hidden", !anySkipped || allowUnverified);
-    document.getElementById("export-confirm-btn").classList.add("hidden");
-    await refreshDocuments();
-  } catch (err) {
-    resultsEl.innerHTML = `<p class="fail">Export failed: ${err.message}</p>`;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Event wiring
 
 function initEvents() {
@@ -676,7 +889,7 @@ function initEvents() {
   fileInput.addEventListener("change", async () => {
     if (!fileInput.files.length) return;
     try {
-      const result = await API.upload(fileInput.files);
+      const result = await API.upload(fileInput.files, state.currentProjectId);
       if (result.errors.length) alert(result.errors.join("\n"));
       for (const doc of result.documents) state.checkedDocIds.add(doc.id);
       if (result.documents.length) {
@@ -703,7 +916,18 @@ function initEvents() {
   document.getElementById("batch-detect-btn").addEventListener("click", startBatchDetect);
   document.getElementById("batch-apply-btn").addEventListener("click", startBatchApply);
   document.getElementById("batch-verify-btn").addEventListener("click", startBatchVerify);
-  document.getElementById("batch-export-btn").addEventListener("click", openExportModal);
+  document.getElementById("continue-export-btn").addEventListener("click", async () => {
+    const readiness = exportStepReadiness();
+    if (!readiness.ok) {
+      alert(readiness.message);
+      return;
+    }
+    if (state.currentProjectId) {
+      await API.updateProject(state.currentProjectId, { step: "export" });
+      state.currentProject = await API.getProject(state.currentProjectId);
+      Router.navigate("export", state.currentProjectId, "export");
+    }
+  });
 
   // Collapsible panels
   document.querySelectorAll(".toggle-panel").forEach((btn) => {
@@ -724,15 +948,27 @@ function initEvents() {
   });
 
   document.getElementById("zoom-in").addEventListener("click", () => {
+    state.zoomIsFit = false;
     state.zoom = Math.min(4, state.zoom * 1.25);
     canvas.setZoom(state.zoom);
     updateViewerToolbar();
   });
   document.getElementById("zoom-out").addEventListener("click", () => {
+    state.zoomIsFit = false;
     state.zoom = Math.max(0.25, state.zoom / 1.25);
     canvas.setZoom(state.zoom);
     updateViewerToolbar();
   });
+
+  document.getElementById("toggle-left-pane").addEventListener("click", () => togglePane("left"));
+  document.getElementById("toggle-right-pane").addEventListener("click", () => togglePane("right"));
+  document.getElementById("restore-left-pane").addEventListener("click", () => {
+    if (!state.paneVisibility.left) togglePane("left");
+  });
+  document.getElementById("restore-right-pane").addEventListener("click", () => {
+    if (!state.paneVisibility.right) togglePane("right");
+  });
+  window.addEventListener("resize", scheduleFitZoomOnResize);
 
   document.getElementById("prev-page").addEventListener("click", async () => {
     if (state.currentPage > 0) {
@@ -791,7 +1027,7 @@ function initEvents() {
     renderReview();
   });
 
-  document.getElementById("redact-selected-btn").addEventListener("click", async () => {
+  document.getElementById("mark-selected-btn").addEventListener("click", async () => {
     if (!state.selectedFindingIds.size) {
       alert("Tick findings in the list first.");
       return;
@@ -811,7 +1047,7 @@ function initEvents() {
     await refreshFindings();
     await refreshDocuments();
   });
-  document.getElementById("redact-highconf-btn").addEventListener("click", async () => {
+  document.getElementById("mark-highconf-btn").addEventListener("click", async () => {
     const ids = requireScope();
     if (!ids) return;
     const result = await API.bulkFindings("approve", {
@@ -827,31 +1063,70 @@ function initEvents() {
   // Rules
   document.getElementById("new-rule-btn").addEventListener("click", () => openRuleEditor());
 
-  // Export modal
-  document.getElementById("export-modal-close").addEventListener("click", () =>
-    exportModal.classList.add("hidden"));
-  document.getElementById("export-cancel-btn").addEventListener("click", () =>
-    exportModal.classList.add("hidden"));
-  document.getElementById("export-confirm-btn").addEventListener("click", () => runExport(false));
-  document.getElementById("export-anyway-btn").addEventListener("click", () => {
-    if (confirm("Export anyway with unresolved verification issues?")) runExport(true);
-  });
-  document.getElementById("export-review-btn").addEventListener("click", () => {
-    exportModal.classList.add("hidden");
-    state.filters.status = "pending";
-    document.getElementById("filter-status").value = "pending";
-    renderReview();
-  });
+  // Keyboard shortcuts on review page
+  document.addEventListener("keydown", async (e) => {
+    if (!isReviewKeyboardContext()) return;
 
-  // Keyboard: delete selected manual finding
-  document.addEventListener("keydown", (e) => {
-    if ((e.key === "Delete" || e.key === "Backspace") &&
-        !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
+    if (e.key === "Delete") {
       const finding = state.findings.find((f) => f.id === state.activeFindingId);
       if (finding && finding.source === "manual" && finding.status !== "applied") {
+        e.preventDefault();
         Actions.deleteFinding(finding.id);
       }
+      return;
     }
+
+    if (e.key === "Backspace") {
+      const finding = state.findings.find((f) => f.id === state.activeFindingId);
+      if (finding && finding.source === "manual" && finding.status !== "applied") {
+        e.preventDefault();
+        Actions.deleteFinding(finding.id);
+        return;
+      }
+      const ids = actionableFindingIds(getKeyboardTargetFindingIds());
+      if (ids.length) {
+        e.preventDefault();
+        await API.bulkFindings("ignore", { finding_ids: ids });
+        state.selectedFindingIds.clear();
+        await refreshFindings();
+        await refreshDocuments();
+      }
+      return;
+    }
+
+    if (e.key === "Enter") {
+      const ids = actionableFindingIds(getKeyboardTargetFindingIds());
+      if (ids.length) {
+        e.preventDefault();
+        await API.bulkFindings("approve", { finding_ids: ids });
+        state.selectedFindingIds.clear();
+        await refreshFindings();
+        await refreshDocuments();
+      }
+    }
+  });
+}
+
+function isReviewKeyboardContext() {
+  if (Router.parse().view !== "redact") return false;
+  const tag = document.activeElement?.tagName;
+  return !["INPUT", "TEXTAREA", "SELECT"].includes(tag);
+}
+
+function getKeyboardTargetFindingIds() {
+  if (state.selectedFindingIds.size) {
+    return [...state.selectedFindingIds];
+  }
+  if (state.activeFindingId) {
+    return [state.activeFindingId];
+  }
+  return [];
+}
+
+function actionableFindingIds(ids) {
+  return ids.filter((id) => {
+    const finding = state.findings.find((f) => f.id === id);
+    return finding && finding.status !== "applied";
   });
 }
 
@@ -860,11 +1135,17 @@ function initEvents() {
 
 async function init() {
   initRuleModal();
+  initRouter();
+  initDashboard();
+  initOrganize();
+  initExportStep();
+  loadPaneVisibility();
+  applyPaneVisibility();
   initEvents();
-  // The recognizer catalog builds the Presidio analyzer on first call (slow);
-  // don't block the document list on it.
-  await Promise.all([loadRecognizerCatalog(), Actions.refreshRules(), refreshAll()]);
-  renderReview();
+  Router.onRoute(handleRoute);
+  updateDetectButtonState();
+  waitForPresidioReady();
+  Actions.refreshRules();
 }
 
 init();

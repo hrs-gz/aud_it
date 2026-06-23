@@ -45,6 +45,69 @@ FINDING_STATUSES = {
     FINDING_NEEDS_REVIEW,
 }
 
+# Project workflow step values
+PROJECT_STEP_ORGANIZE = "organize"
+PROJECT_STEP_REDACT = "redact"
+PROJECT_STEP_EXPORT = "export"
+
+PROJECT_STEPS = {PROJECT_STEP_ORGANIZE, PROJECT_STEP_REDACT, PROJECT_STEP_EXPORT}
+
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(256))
+    step: Mapped[str] = mapped_column(String(32), default=PROJECT_STEP_ORGANIZE)
+    organize_action_count: Mapped[int] = mapped_column(Integer, default=0)
+    organize_undo_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    documents: Mapped[list["Document"]] = relationship(back_populates="project")
+    pages: Mapped[list["ProjectPage"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan", order_by="ProjectPage.slot_index"
+    )
+    organize_actions: Mapped[list["OrganizeAction"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan", order_by="OrganizeAction.seq"
+    )
+
+
+class ProjectPage(Base):
+    """Ordered page slot during the organize step."""
+
+    __tablename__ = "project_pages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    slot_index: Mapped[int] = mapped_column(Integer)
+    source_document_id: Mapped[str] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
+    source_page_num: Mapped[int] = mapped_column(Integer)
+
+    project: Mapped["Project"] = relationship(back_populates="pages")
+    source_document: Mapped["Document"] = relationship(back_populates="project_slots")
+
+
+class OrganizeAction(Base):
+    __tablename__ = "organize_actions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    seq: Mapped[int] = mapped_column(Integer)
+    action_type: Mapped[str] = mapped_column(String(32))
+    before_json: Mapped[str] = mapped_column(Text)
+    after_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+
+    project: Mapped["Project"] = relationship(back_populates="organize_actions")
+
 
 class Document(Base):
     __tablename__ = "documents"
@@ -70,7 +133,14 @@ class Document(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
+    project_id: Mapped[str | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=True
+    )
+    is_materialized: Mapped[bool] = mapped_column(Boolean, default=False)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    project: Mapped["Project | None"] = relationship(back_populates="documents")
+    project_slots: Mapped[list["ProjectPage"]] = relationship(back_populates="source_document")
     pages: Mapped[list["Page"]] = relationship(back_populates="document", cascade="all, delete-orphan")
     findings: Mapped[list["Finding"]] = relationship(
         back_populates="document", cascade="all, delete-orphan"
@@ -168,6 +238,9 @@ _DOCUMENT_MIGRATION_COLUMNS: dict[str, str] = {
     "verified_at": "DATETIME",
     "verification_json": "TEXT",
     "exported_at": "DATETIME",
+    "project_id": "VARCHAR(36)",
+    "is_materialized": "BOOLEAN DEFAULT 0",
+    "archived": "BOOLEAN DEFAULT 0",
 }
 
 
@@ -183,9 +256,101 @@ def _ensure_document_columns() -> None:
                 conn.execute(sql_text(f"ALTER TABLE documents ADD COLUMN {name} {ddl_type}"))
 
 
+_PROJECT_MIGRATION_COLUMNS: dict[str, str] = {
+    "step": f"VARCHAR(32) DEFAULT '{PROJECT_STEP_ORGANIZE}'",
+    "organize_action_count": "INTEGER DEFAULT 0",
+    "organize_undo_count": "INTEGER DEFAULT 0",
+}
+
+
+def _ensure_project_columns() -> None:
+    """Add new columns to an existing projects table (SQLite create_all won't)."""
+    inspector = inspect(engine)
+    if "projects" not in inspector.get_table_names():
+        return
+    existing = {col["name"] for col in inspector.get_columns("projects")}
+    with engine.begin() as conn:
+        for name, ddl_type in _PROJECT_MIGRATION_COLUMNS.items():
+            if name not in existing:
+                conn.execute(sql_text(f"ALTER TABLE projects ADD COLUMN {name} {ddl_type}"))
+
+
+def _backfill_project_pages() -> None:
+    """Populate project_pages for upgraded DBs that have linked docs but no slots."""
+    import uuid
+
+    from sqlalchemy.orm import Session
+
+    with Session(engine) as db:
+        orphans = db.query(Document).filter(Document.project_id.is_(None)).all()
+        if orphans:
+            legacy = db.query(Project).filter(Project.name == "Legacy project").first()
+            if not legacy:
+                legacy = Project(
+                    id=str(uuid.uuid4()),
+                    name="Legacy project",
+                    step=PROJECT_STEP_REDACT,
+                    organize_action_count=0,
+                    organize_undo_count=0,
+                )
+                db.add(legacy)
+                db.flush()
+            slot = (
+                db.query(ProjectPage)
+                .filter(ProjectPage.project_id == legacy.id)
+                .count()
+            )
+            for doc in orphans:
+                doc.project_id = legacy.id
+                doc.is_materialized = True
+                for page in sorted(doc.pages, key=lambda p: p.page_num):
+                    db.add(
+                        ProjectPage(
+                            project_id=legacy.id,
+                            slot_index=slot,
+                            source_document_id=doc.id,
+                            source_page_num=page.page_num,
+                        )
+                    )
+                    slot += 1
+
+        projects = db.query(Project).all()
+        for project in projects:
+            has_pages = (
+                db.query(ProjectPage).filter(ProjectPage.project_id == project.id).count() > 0
+            )
+            docs = (
+                db.query(Document)
+                .filter(Document.project_id == project.id, Document.archived.is_(False))
+                .order_by(Document.created_at)
+                .all()
+            )
+            if not has_pages and docs:
+                slot = 0
+                for doc in docs:
+                    doc.is_materialized = True
+                    for page in sorted(doc.pages, key=lambda p: p.page_num):
+                        db.add(
+                            ProjectPage(
+                                project_id=project.id,
+                                slot_index=slot,
+                                source_document_id=doc.id,
+                                source_page_num=page.page_num,
+                            )
+                        )
+                        slot += 1
+                if project.step == PROJECT_STEP_ORGANIZE:
+                    project.step = PROJECT_STEP_REDACT
+            elif docs and project.step == PROJECT_STEP_ORGANIZE:
+                project.step = PROJECT_STEP_REDACT
+        db.commit()
+
+
 def init_db() -> None:
     _ensure_document_columns()
     Base.metadata.create_all(bind=engine)
+    _ensure_project_columns()
+    _backfill_project_pages()
 
 
 def get_db():

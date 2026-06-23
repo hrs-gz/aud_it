@@ -1,0 +1,9 @@
+file,document_type,pages,primary_test_purpose
+01_client_intake_form.pdf,digital text PDF,1,Dense form table; immigration IDs; minor child; address appearing in paragraph.
+02_immigration_court_hearing_notice.pdf,digital text PDF,1,Government-style notice; A-number format variant; case IDs; dates; time; counsel email.
+03_client_declaration_affidavit.pdf,digital text PDF,2,Long paragraphs; repeated entities; table; page break; bank numbers; school/minor info.
+04_grant_eligibility_packet.pdf,digital text PDF,1,Grant workflow memo; benefits IDs; bank data; sensitive categories that regex may miss.
+05_evidence_index_and_paystub.pdf,digital text PDF,1,Tables with compact text; Social Security Number; payroll identifiers; money; duplicate identifiers.
+06_supporting_provider_letter.pdf,digital text PDF,1,Provider letter; health and trauma phrases; fax/phone; authorization code; A-number in prose.
+07_scanned_walk_in_notes_image_only.pdf,image-only scanned-style PDF,1,OCR path; skew/noise; no underlying searchable text layer.
+08_attorney_review_worksheet.pdf,digital text PDF with drawn checkboxes,1,Checkbox-like marks; mixed manual notes; workflow reminders; short IDs.

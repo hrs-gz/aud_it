@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pymupdf as fitz
@@ -32,7 +33,19 @@ def _ocrmypdf_available() -> bool:
     return shutil.which("ocrmypdf") is not None
 
 
+def _bundled_tessdata_dir() -> Path | None:
+    """Tessdata shipped inside a PyInstaller bundle (see aud_it.spec)."""
+    meipass = getattr(sys, "_MEIPASS", None)
+    if not meipass:
+        return None
+    candidate = Path(meipass) / "tesseract" / "tessdata"
+    return candidate if candidate.is_dir() else None
+
+
 def _find_tessdata() -> str | None:
+    bundled = _bundled_tessdata_dir()
+    if bundled is not None:
+        return str(bundled)
     if hasattr(fitz, "get_tessdata"):
         try:
             tessdata = fitz.get_tessdata()
