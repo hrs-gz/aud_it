@@ -2,8 +2,9 @@
 
 from fastapi.testclient import TestClient
 
-from backend.database import Project
+from backend.database import Document, Project, ProjectPage
 from backend.main import app
+from backend.services.organize import append_document_pages, materialize_project
 from backend.services.projects import create_project
 from tests.conftest import PDF_DIR, ingest_test_pdf
 
@@ -80,8 +81,6 @@ def test_merge_documents(db):
 
 
 def test_advance_materializes(db):
-    from backend.services.organize import append_document_pages
-
     project = create_project(db, "Advance test")
     doc = ingest_test_pdf(db, "01_text_pii_letter.pdf")
     doc.project_id = project.id
@@ -100,3 +99,61 @@ def test_advance_materializes(db):
     db.expire_all()
     refreshed = db.get(Project, project.id)
     assert refreshed.step == "redact"
+
+
+def test_advance_multi_doc_materializes(db):
+    project = create_project(db, "Multi advance")
+    res = _upload_two_pdfs(project.id)
+    assert res.status_code == 200
+
+    old_doc_ids = {d["id"] for d in res.json()["documents"]}
+    pages_before = client.get(f"/api/projects/{project.id}/pages").json()["pages"]
+    assert len(pages_before) >= 2
+
+    advanced = client.post(f"/api/projects/{project.id}/advance")
+    assert advanced.status_code == 200
+    body = advanced.json()
+    assert body["project"]["step"] == "redact"
+    assert body["document"]["is_materialized"] is True
+
+    docs = client.get(f"/api/documents?project_id={project.id}").json()["documents"]
+    assert len(docs) == 1
+    assert docs[0]["is_materialized"] is True
+    assert docs[0]["id"] not in old_doc_ids
+
+    pages_after = client.get(f"/api/projects/{project.id}/pages").json()["pages"]
+    assert len(pages_after) == docs[0]["page_count"]
+    assert all(p["source_document_id"] == docs[0]["id"] for p in pages_after)
+
+
+def test_advance_deletes_slots_before_documents(db):
+    project = create_project(db, "FK order test")
+    doc = ingest_test_pdf(db, "01_text_pii_letter.pdf")
+    doc.project_id = project.id
+    db.commit()
+    db.refresh(doc)
+
+    append_document_pages(db, project, doc)
+    db.commit()
+
+    old_doc_id = doc.id
+    slots_before = (
+        db.query(ProjectPage).filter(ProjectPage.project_id == project.id).count()
+    )
+    assert slots_before > 0
+    assert (
+        db.query(ProjectPage)
+        .filter(ProjectPage.source_document_id == old_doc_id)
+        .count()
+        == slots_before
+    )
+
+    materialized = materialize_project(db, project)
+
+    assert db.get(Document, old_doc_id) is None
+    remaining_slots = (
+        db.query(ProjectPage).filter(ProjectPage.project_id == project.id).all()
+    )
+    assert len(remaining_slots) == materialized.page_count
+    assert all(s.source_document_id == materialized.id for s in remaining_slots)
+    assert not any(s.source_document_id == old_doc_id for s in remaining_slots)
